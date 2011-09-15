@@ -8,6 +8,7 @@ from tornado.escape import xhtml_escape
 from tornado.httpclient import AsyncHTTPClient
 import tornado.web
 
+from util.cache import Cache
 from util.route import route
 
 @route(r'/atom/(\d+)')
@@ -15,8 +16,11 @@ class AtomHandler(tornado.web.RequestHandler):
 	"""Fetches the public posts for a given G+ user id as an Atom feed."""
 
 	profile_json_url_template = 'https://plus.google.com/_/stream/getactivities/?sp=[1,2,"%s"]&rt=j'
+	cache_key_template = 'pluss--gplusid--atom--%s'
+
 	comma_fixer_regex = re.compile(r',(?=,)')
 	space_compress_regex = re.compile(r'\s+')
+
 	ATOM_DATEFMT = "%Y-%m-%dT%H:%M:%SZ"
 	HTTP_DATEFMT = "%a, %d %b %Y %H:%M:%S GMT"
 
@@ -29,10 +33,21 @@ class AtomHandler(tornado.web.RequestHandler):
 			self.write("Google+ profile IDs are exactly 21 digits long. Please specify a proper profile ID.")
 			return self.finish()
 
-		http_client = AsyncHTTPClient()
-		http_client.fetch(self.profile_json_url_template % user_id, self.on_http_response)
+		self.cache_key = self.cache_key_template % user_id
+		cached_result = Cache.get(self.cache_key)
+		if cached_result and not self.request.arguments.get('flush', [None])[0]:
+			return self._respond(**cached_result)
 
-	def on_http_response(self, response):
+		http_client = AsyncHTTPClient()
+		http_client.fetch(self.profile_json_url_template % user_id, self._on_http_response)
+
+	def _respond(self, headers=(), body='', **kwargs):
+		for (header, value) in headers:
+			self.set_header(header, value)
+		self.write(body)
+		return self.finish()
+
+	def _on_http_response(self, response):
 		if response.error:
 			logging.error("AsyncHTTPRequest error: %r" % response.error)
 			self.send_error(500)
@@ -45,8 +60,7 @@ class AtomHandler(tornado.web.RequestHandler):
 			data = json.loads(pseudojson)
 			posts = data[0][0][1][0]
 
-			self.set_header('Content-Type', 'application/atom+xml')
-
+			headers = [('Content-Type', 'application/atom+xml')]
 			params = {
 				'userid': self.gplus_user_id,
 				'baseurl': 'http://%s' % self.request.host,
@@ -55,8 +69,7 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			if not posts:
 				params['lastupdate'] = datetime.datetime.today().strftime(self.ATOM_DATEFMT)
-				self.write(self.empty_feed_template % params)
-				return self.finish()
+				return self._respond(headers, self.empty_feed_template % params)
 
 			# Return a maximum of 10 items
 			posts = posts[:10]
@@ -66,13 +79,14 @@ class AtomHandler(tornado.web.RequestHandler):
 			#params['authorimg'] = posts[0][18]
 			params['lastupdate'] = lastupdate.strftime(self.ATOM_DATEFMT)
 
-			self.set_header('Last-Modified', lastupdate.strftime(self.HTTP_DATEFMT))
+			headers.append( ('Last-Modified', lastupdate.strftime(self.HTTP_DATEFMT)) )
 
 			params['entrycontent'] = ''.join(self.entry_template % self.get_post_params(p) for p in posts)
 
-			self.write(self.feed_template % params)
+			body = self.feed_template % params
 
-			return self.finish()
+			Cache.set(self.cache_key, {'headers': headers, 'body': body}, time=900) # 15 minute cache
+			return self._respond(headers, body)
 
 	def get_post_params(self, post):
 		post_timestamp = datetime.datetime.fromtimestamp(float(post[5])/1000)
