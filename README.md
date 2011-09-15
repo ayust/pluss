@@ -58,6 +58,8 @@ Though `pluss` was written basically from the ground up, there were a few portio
 Licensing
 ---------
 
+`pluss` was originally created by [Amber Yust][8].
+
 As specified in detail in the included `LICENSE` file, this software is released under the MIT License. That basically means you can do essentially whatever you want with it as long as you keep the `LICENSE` file around (i.e. don't mislead people as to the original source/availability of this software).
 
  [1]: http://www.tornadoweb.org/
@@ -67,3 +69,4 @@ As specified in detail in the included `LICENSE` file, this software is released
  [5]: http://plus.google.com
  [6]: http://en.wikipedia.org/wiki/Atom_%28standard%29
  [7]: https://github.com/russellbeattie/plusfeed
+ [8]: https://github.com/ayust
