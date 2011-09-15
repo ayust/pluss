@@ -55,6 +55,11 @@ Special Thanks
 
 Though `pluss` was written basically from the ground up, there were a few portions which were inspired by or assisted by the work of others. The [`plusfeed`][7] codebase was extremely helpful in corroborating and speeding along some of my own exploration of Google+ data parsing and Atom feed generation. There are also two files, `util/route.py` and `util/pid.py`, which were utility code openly shared by individuals in blog posts - you can find the original authors and links to the sources within the files themselves as comments.
 
+Licensing
+---------
+
+As specified in detail in the included `LICENSE` file, this software is released under the MIT License. That basically means you can do essentially whatever you want with it as long as you keep the `LICENSE` file around (i.e. don't mislead people as to the original source/availability of this software).
+
  [1]: http://www.tornadoweb.org/
  [2]: http://www.crummy.com/software/BeautifulSoup/
  [3]: http://python.org/
