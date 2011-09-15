@@ -17,6 +17,7 @@ class AtomHandler(tornado.web.RequestHandler):
 
 	profile_json_url_template = 'https://plus.google.com/_/stream/getactivities/?sp=[1,2,"%s"]&rt=j'
 	cache_key_template = 'pluss--gplusid--atom--1--%s'
+	ratelimit_key_template = 'pluss--remoteip--ratelimit--1--%s'
 
 	comma_fixer_regex = re.compile(r',(?=,)')
 	space_compress_regex = re.compile(r'\s+')
@@ -26,6 +27,22 @@ class AtomHandler(tornado.web.RequestHandler):
 
 	@tornado.web.asynchronous
 	def get(self, user_id):
+
+		ratelimit_key = self.ratelimit_key_template % self.request.remote_ip
+		remote_ip_rate = Cache.incr(ratelimit_key)
+		if remote_ip_rate is None:
+			Cache.set(ratelimit_key, 1, time=60)
+		elif remote_ip_rate > 60:
+			self.set_status(503)
+			self.set_header('Retry-After', '60')
+			self.write('Rate limit exceeded. Please do not make more than 60 requests per minute.')
+
+			# Don't log every single time we rate limit a host (that would get spammy fast),
+			# but do log significant breakpoints on exactly how spammy a host is being.
+			if remote_ip_rate in (61, 100, 1000, 10000):
+				logging.info('Rate limited IP %s - %s requests/min' % (self.request.remote_ip, remote_ip_rate))
+
+			return self.finish()
 
 		self.gplus_user_id = user_id
 
