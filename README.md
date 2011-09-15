@@ -48,7 +48,7 @@ Notes
  - `pluss` will write out a `app.pid` file to the directory it's started in, and will remove it when it terminates.
  - `pluss` currently runs in the foreground (it's not really productionized yet), but you can background it with `nohup` easily enough, or run it in `screen`/`tmux`.
  - If `memcache` is available as a module in Python, `pluss` assumes there is a memcache server running on `127.0.0.1:11211` - if your memcache server is located elsewhere, you'll need to edit `util/cache.py` to change this.
- - Since `pluss` currently doesn't do any authentication or limiting of what Google+ user streams it will proxy, nor any rate limiting for forced flushes, you may wish to implement your own external restrictions. Some examples might include running it behind some other proxy that implements more security measures or adding firewall rules to only allow certain clients access.
+ - Since `pluss` currently doesn't do any authentication or limiting of what Google+ user streams it will proxy (and has a fairly generous rate limit), you may wish to implement your own external restrictions. Some examples might include running it behind some other proxy that implements more security measures or adding firewall rules to only allow certain clients access.
 
 Special Thanks
 --------------
