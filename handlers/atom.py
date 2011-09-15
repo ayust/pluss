@@ -16,7 +16,7 @@ class AtomHandler(tornado.web.RequestHandler):
 	"""Fetches the public posts for a given G+ user id as an Atom feed."""
 
 	profile_json_url_template = 'https://plus.google.com/_/stream/getactivities/?sp=[1,2,"%s"]&rt=j'
-	cache_key_template = 'pluss--gplusid--atom--%s'
+	cache_key_template = 'pluss--gplusid--atom--1--%s'
 
 	comma_fixer_regex = re.compile(r',(?=,)')
 	space_compress_regex = re.compile(r'\s+')
@@ -41,10 +41,29 @@ class AtomHandler(tornado.web.RequestHandler):
 		http_client = AsyncHTTPClient()
 		http_client.fetch(self.profile_json_url_template % user_id, self._on_http_response)
 
-	def _respond(self, headers=(), body='', **kwargs):
-		for (header, value) in headers:
+	def _respond(self, headers=None, body='', **kwargs):
+		if headers is None:
+			headers = {}
+
+		# Potentially just send a 304 Not Modified if the browser supports it.
+		if 'If-Modified-Since' in self.request.headers:
+			remote_timestamp = datetime.datetime.strptime(self.request.headers['If-Modified-Since'], self.HTTP_DATEFMT)
+
+			# This check is necessary because we intentionally don't send Last-Modified for
+			# empty feeds - if somehow a post shows up later, we'd want it to get served even if
+			# the empty feed is 'newer' than the post (since we use latest post time for Last-Modified)
+			if 'Last-Modified' in headers:
+
+				local_timestamp = datetime.datetime.strptime(headers['Last-Modified'], self.HTTP_DATEFMT)
+				if local_timestamp <= remote_timestamp:
+					# Hasn't been modified since it was last requested
+					self.set_status(304)
+					return self.finish()
+
+		for (header, value) in headers.iteritems():
 			self.set_header(header, value)
 		self.write(body)
+
 		return self.finish()
 
 	def _on_http_response(self, response):
@@ -60,7 +79,7 @@ class AtomHandler(tornado.web.RequestHandler):
 			data = json.loads(pseudojson)
 			posts = data[0][0][1][0]
 
-			headers = [('Content-Type', 'application/atom+xml')]
+			headers = {'Content-Type': 'application/atom+xml'}
 			params = {
 				'userid': self.gplus_user_id,
 				'baseurl': 'http://%s' % self.request.host,
@@ -79,7 +98,7 @@ class AtomHandler(tornado.web.RequestHandler):
 			#params['authorimg'] = posts[0][18]
 			params['lastupdate'] = lastupdate.strftime(self.ATOM_DATEFMT)
 
-			headers.append( ('Last-Modified', lastupdate.strftime(self.HTTP_DATEFMT)) )
+			headers['Last-Modified'] = lastupdate.strftime(self.HTTP_DATEFMT) 
 
 			params['entrycontent'] = u''.join(self.entry_template.format(**self.get_post_params(p)) for p in posts)
 
