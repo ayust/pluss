@@ -25,8 +25,8 @@ Installation
 
 Right now `pluss` isn't a PyPi package, so there's no `setup.py` or the like. Just clone the repository and you should have something that can run straight out of the box.
 
-Setup
------
+Setup and Usage
+---------------
 
 Currently `pluss` doesn't have any real configuration - just run it:
 
@@ -35,6 +35,12 @@ Currently `pluss` doesn't have any real configuration - just run it:
 By default, `pluss` listens on all interfaces, port 7587. ('PLUS' on a phone keypad.)
 
 If you want to modify this behavior right now, you'll have to edit `pluss.py` - it's not too scary though, just a standard Tornado application.
+
+Once `pluss` is running, feeds are available at the following endpoint:
+
+    http://example.com:7587/atom/<21-digit google user id>
+
+If you want to force a refresh of a given feed, pass `?flush=1` as a GET parameter to the feed URL to bypass `memcache` and force a re-query of the Google+ stream. (Google might not like it if you do this too often, nor might your server resources.)
 
 Notes
 -----
