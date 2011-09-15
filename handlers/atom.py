@@ -174,7 +174,7 @@ class AtomHandler(tornado.web.RequestHandler):
 
 	empty_feed_template = u"""<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>No Public Items Found</title>
+  <title>No Public Items Found for {userid}</title>
   <link href="https://plus.google.com/{userid}" rel="alternate"></link>
   <link href="{requesturi}" rel="self"></link>
   <id>https://plus.google.com/{userid}</id>
