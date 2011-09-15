@@ -4,7 +4,7 @@ import logging
 import re
 
 from BeautifulSoup import BeautifulSoup as soup
-from tornado.escape import xhtml_escape
+from xml.sax.saxutils import escape as xhtml_escape
 from tornado.httpclient import AsyncHTTPClient
 import tornado.web
 
@@ -69,7 +69,7 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			if not posts:
 				params['lastupdate'] = datetime.datetime.today().strftime(self.ATOM_DATEFMT)
-				return self._respond(headers, self.empty_feed_template % params)
+				return self._respond(headers, self.empty_feed_template.format(**params))
 
 			# Return a maximum of 10 items
 			posts = posts[:10]
@@ -81,9 +81,9 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			headers.append( ('Last-Modified', lastupdate.strftime(self.HTTP_DATEFMT)) )
 
-			params['entrycontent'] = ''.join(self.entry_template % self.get_post_params(p) for p in posts)
+			params['entrycontent'] = u''.join(self.entry_template.format(**self.get_post_params(p)) for p in posts)
 
-			body = self.feed_template % params
+			body = self.feed_template.format(**params)
 
 			Cache.set(self.cache_key, {'headers': headers, 'body': body}, time=900) # 15 minute cache
 			return self._respond(headers, body)
@@ -123,21 +123,21 @@ class AtomHandler(tornado.web.RequestHandler):
 						pass
 
 		# If no actual parseable content was found, just link to the post
-		post_content = ''.join(content) or permalink
+		post_content = u''.join(content) or permalink
 
 		# Generate the post title out of just text [max: 100 characters]
-		post_title = ' '.join(x.string for x in soup(post_content).findAll(text=True))
+		post_title = u' '.join(x.string for x in soup(post_content).findAll(text=True))
 		post_title = self.space_compress_regex.sub(' ', post_title)
 		if len(post_title) > 100:
 			if post_title == permalink:
-				post_title = "A public G+ post"
+				post_title = u"A public G+ post"
 			else:
 				candidate_title = post_title[:97]
 				if '&' in candidate_title[-5:]: # Don't risk cutting off HTML entities
 					candidate_title = candidate_title.rsplit('&', 1)[0]
 				if ' ' in candidate_title[-5:]: # Reasonably avoid cutting off words
 					candidate_title = candidate_title.rsplit(' ', 1)[0]
-				post_title = "%s..." % candidate_title
+				post_title = u"%s..." % candidate_title
 
 		return {
 			'title': post_title,
@@ -148,43 +148,43 @@ class AtomHandler(tornado.web.RequestHandler):
 			'summary': xhtml_escape(post_content),
 		}
 
-	entry_template = """
+	entry_template = u"""
  <entry>
-  <title>%(title)s</title>
-  <link href="%(permalink)s" rel="alternate" />
-  <updated>%(postatomdate)s</updated>
-  <id>tag:plus.google.com,%(postdate)s:/%(id)s/</id>
-  <summary type="html">%(summary)s</summary>
+  <title>{title}</title>
+  <link href="{permalink}" rel="alternate" />
+  <updated>{postatomdate}</updated>
+  <id>tag:plus.google.com,{postdate}:/{id}/</id>
+  <summary type="html">{summary}</summary>
  </entry>
 """
 
-	feed_template = """<?xml version="1.0" encoding="UTF-8"?>
+	feed_template = u"""<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
- <title>%(author)s - Google+ Public Posts</title>
- <link href="https://plus.google.com/%(userid)s" rel="alternate" />
- <link href="%(requesturi)s" rel="self" />
- <id>https://plus.google.com/%(userid)s</id>
- <updated>%(lastupdate)s</updated>
+ <title>{author} - Google+ Public Posts</title>
+ <link href="https://plus.google.com/{userid}" rel="alternate" />
+ <link href="{requesturi}" rel="self" />
+ <id>https://plus.google.com/{userid}</id>
+ <updated>{lastupdate}</updated>
  <author>
-  <name>%(author)s</name>
+  <name>{author}</name>
  </author>
-%(entrycontent)s
+{entrycontent}
 </feed>
 """
 
-	empty_feed_template = """<?xml version="1.0" encoding="utf-8"?>
+	empty_feed_template = u"""<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>No Public Items Found</title>
-  <link href="https://plus.google.com/%(userid)s" rel="alternate"></link>
-  <link href="%(requesturi)s" rel="self"></link>
-  <id>https://plus.google.com/%(userid)s</id>
-  <updated>%(lastupdate)s</updated>
+  <link href="https://plus.google.com/{userid}" rel="alternate"></link>
+  <link href="{requesturi}" rel="self"></link>
+  <id>https://plus.google.com/{userid}</id>
+  <updated>{lastupdate}</updated>
   <entry>
     <title>No Public Items Found</title>
-    <link href="http://plus.google.com/%(userid)s"/>
-    <id>https://plus.google.com/%(userid)s</id>
-    <updated>%(lastupdate)s</updated>
-    <summary>Google+ user %(userid)s  has not made any posts public.</summary>
+    <link href="http://plus.google.com/{userid}"/>
+    <id>https://plus.google.com/{userid}</id>
+    <updated>{lastupdate}</updated>
+    <summary>Google+ user {userid}  has not made any posts public.</summary>
   </entry>
 </feed>
 """
