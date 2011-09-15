@@ -64,7 +64,7 @@ class AtomHandler(tornado.web.RequestHandler):
 			params = {
 				'userid': self.gplus_user_id,
 				'baseurl': 'http://%s' % self.request.host,
-				'requesturi': 'http://%s%s' % (self.request.host, self.request.uri),
+				'requesturi': 'http://%s%s' % (self.request.host, self.request.uri.split('?', 1)[0]),
 			}
 
 			if not posts:
