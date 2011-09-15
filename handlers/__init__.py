@@ -1,2 +1,2 @@
-from main import MainHandler
-from atom import AtomHandler
+from .main import MainHandler
+from .atom import AtomHandler
