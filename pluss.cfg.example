@@ -1,6 +1,9 @@
 [cache]
 memcache = true # Enable memcached support (highly recommended)
 
+[database]
+path = pluss.sqlite
+
 [network]
 port = 7587 # 7587 is 'PLUS' on a phone keypad
 

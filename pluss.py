@@ -8,6 +8,7 @@ from tornado.ioloop import IOLoop
 import tornado.web
 
 from util.config import Config
+from util import db
 from util import pid
 from util.route import route
 
@@ -33,6 +34,8 @@ if __name__ == '__main__':
 
 	pid.write(pid_path)
 	try:
+		db.init(_expand_path(Config.get('database', 'path')))
+
 		http_server = HTTPServer(application, xheaders=True)
 		http_server.bind(Config.getint('network', 'port'))
 		http_server.start()

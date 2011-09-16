@@ -3,3 +3,4 @@
 *.pid
 .*.swp
 /pluss.cfg
+*.sqlite
