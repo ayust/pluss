@@ -1,10 +1,16 @@
 import hashlib
 import json
-try:
-	import memcache
-	_hush_pyflakes = (memcache,)
-	del _hush_pyflakes
-except ImportError:
+
+from util.config import Config
+
+if Config.getboolean('cache', 'memcache'):
+	try:
+		import memcache
+		_hush_pyflakes = (memcache,)
+		del _hush_pyflakes
+	except ImportError:
+		memcache = None
+else:
 	memcache = None
 
 class Cache(object):

@@ -1,0 +1,8 @@
+[cache]
+memcache = true # Enable memcached support (highly recommended)
+
+[network]
+port = 7587 # 7587 is 'PLUS' on a phone keypad
+
+[system]
+pid-path = app.pid
