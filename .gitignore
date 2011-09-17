@@ -2,3 +2,5 @@
 *.log
 *.pid
 .*.swp
+/pluss.cfg
+*.sqlite

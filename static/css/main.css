@@ -1,0 +1,79 @@
+body {
+	font-family: sans-serif;
+	background: #eee;
+	color: #000;
+	padding: 0;
+	margin: 0;
+	line-height: 24px;
+}
+
+#content-container {
+	background: #fff;
+	color: #000;
+	text-align: center;
+	margin: 0 auto;
+	padding: 20px 0;
+	width: 960px;
+	border-left: 1px solid #ddd;
+	border-right: 1px solid #ddd;
+}
+
+#content-container > h1 {
+	padding-bottom: 30px;
+	border-bottom: 1px solid #ddd;
+}
+
+#content-container > p,
+#content-container div.pseudo-paragraph {
+	text-align: left;
+	margin: 20px;
+}
+
+#content-container > p.error {
+	border: 1px solid #fcc;
+	background: #fee;
+	color: #000;
+	padding: 5px;
+	margin: 15px 15px 30px;
+	text-align: center;
+}
+
+#content-container > p.your-feed {
+	border: 1px solid #ccf;
+	background: #eef;
+	color: #000;
+	padding: 5px;
+	margin: 15px 15px 30px;
+	font-family: monospace;
+	text-align: center;
+}
+
+#content-container > p > a,
+#content-container > div > a {
+	color: #00f;
+}
+
+#content-container > p.your-feed > a {
+	text-decoration: none;
+}
+
+#content-container div.pseudo-paragraph > p,
+#content-container div.pseudo-paragraph > div.share-buttons {
+	display: inline-block;
+	margin: 20px 5px;
+}
+
+#content-container div.pseudo-paragraph > div.share-buttons {
+	vertical-align: middle;
+}
+
+#content-container div.pseudo-paragraph > div,
+#content-container div.pseudo-paragraph > a {
+	vertical-align: text-middle;
+}
+
+#footer {
+	font-size: 80%;
+	color: #888;
+	text-align: center;
+}
