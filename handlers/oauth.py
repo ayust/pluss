@@ -75,9 +75,10 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		# If we got here, we don't recognize why this endpoint was called.
 		self.send_error(501) # 501 Not Implemented
 
-	def on_token_request_complete(self):
+	def on_token_request_complete(self, response):
 		"""Callback for the initial OAuth token request."""
-		results = json.loads(self.request.body)
+
+		results = json.loads(response.body)
 
 		# sanity check
 		if results['token_type'] != "Bearer":
@@ -102,9 +103,9 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		)
 
 		# store refresh token and gplus user id in database
-		TokenIdMapping.update_refresh_token(person['id'], person['refresh_token'])
+		TokenIdMapping.update_refresh_token(person['id'], self.gplus_refresh_token)
 	
-		self.redirect('/auth_success') #XXX
+		self.redirect('/atom/%s' % person['id'])
 
 	# Everything below here is classmethods so they can be used during
 	# requests beyond the initial OAuth authorization flow.
@@ -143,7 +144,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 	@classmethod
 	def on_fetch_person_complete(cls, response, callback):
 		"""Callback for the people/me API call in fetch_person_by_token."""
-		person = json.loads(response)
+		person = json.loads(response.body)
 		Cache.set(cls.profile_cache_key_template % person['id'], person, time=Config.getint('cache', 'profile-expire'))
 		return IOLoop.instance().add_callback(lambda: callback(person))
 
@@ -176,7 +177,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 	@classmethod
 	def on_refresh_complete(cls, response, id, callback):
 		"""Callback for request to get a new access token based on refresh token."""
-		results = json.loads(response)
+		results = json.loads(response.body)
 
 		# sanity check
 		if results['token_type'] != "Bearer":
@@ -198,7 +199,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		if not token:
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
-		headers = {'Authorization': 'Bearer: %s' % token}
+		headers = {'Authorization': 'Bearer %s' % token}
 		if 'headers' in kwargs:
 			kwargs['headers'].update(headers)
 		else:

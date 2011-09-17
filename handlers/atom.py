@@ -5,25 +5,24 @@ import re
 
 from BeautifulSoup import BeautifulSoup as soup
 from xml.sax.saxutils import escape as xhtml_escape
-from tornado.httpclient import AsyncHTTPClient
 import tornado.web
 
+from handlers.oauth import OAuth2Handler
+from util import dateutils
 from util.cache import Cache
+from util.config import Config
 from util.route import route
 
 @route(r'/atom/(\d+)')
 class AtomHandler(tornado.web.RequestHandler):
 	"""Fetches the public posts for a given G+ user id as an Atom feed."""
 
-	profile_json_url_template = 'https://plus.google.com/_/stream/getactivities/?sp=[1,2,"%s"]&rt=j'
-	cache_key_template = 'pluss--gplusid--atom--1--%s'
+	profile_json_url = 'https://www.googleapis.com/plus/v1/people/me/activities/public?maxResults=10'
+	cache_key_template = 'pluss--gplusid--atom--2--%s'
 	ratelimit_key_template = 'pluss--remoteip--ratelimit--1--%s'
 
-	comma_fixer_regex = re.compile(r',(?=,)')
 	space_compress_regex = re.compile(r'\s+')
 
-	ATOM_DATEFMT = "%Y-%m-%dT%H:%M:%SZ"
-	HTTP_DATEFMT = "%a, %d %b %Y %H:%M:%S GMT"
 
 	@tornado.web.asynchronous
 	def get(self, user_id):
@@ -55,8 +54,7 @@ class AtomHandler(tornado.web.RequestHandler):
 		if cached_result and not self.request.arguments.get('flush', [None])[0]:
 			return self._respond(**cached_result)
 
-		http_client = AsyncHTTPClient()
-		http_client.fetch(self.profile_json_url_template % user_id, self._on_http_response)
+		OAuth2Handler.authed_fetch(user_id, self.profile_json_url, self._on_api_response)
 
 	def _respond(self, headers=None, body='', **kwargs):
 		if headers is None:
@@ -64,14 +62,14 @@ class AtomHandler(tornado.web.RequestHandler):
 
 		# Potentially just send a 304 Not Modified if the browser supports it.
 		if 'If-Modified-Since' in self.request.headers:
-			remote_timestamp = datetime.datetime.strptime(self.request.headers['If-Modified-Since'], self.HTTP_DATEFMT)
+			remote_timestamp = dateutils.from_http_format(self.request.headers['If-Modified-Since'])
 
 			# This check is necessary because we intentionally don't send Last-Modified for
 			# empty feeds - if somehow a post shows up later, we'd want it to get served even if
 			# the empty feed is 'newer' than the post (since we use latest post time for Last-Modified)
 			if 'Last-Modified' in headers:
 
-				local_timestamp = datetime.datetime.strptime(headers['Last-Modified'], self.HTTP_DATEFMT)
+				local_timestamp = dateutils.from_http_format(headers['Last-Modified'])
 				if local_timestamp <= remote_timestamp:
 					# Hasn't been modified since it was last requested
 					self.set_status(304)
@@ -83,18 +81,15 @@ class AtomHandler(tornado.web.RequestHandler):
 
 		return self.finish()
 
-	def _on_http_response(self, response):
+	def _on_api_response(self, response):
+		if response is None:
+			logging.error("API request for %s failed." % self.gplus_user_id)
+			return self.send_error(500)
 		if response.error:
 			logging.error("AsyncHTTPRequest error: %r" % response.error)
-			self.send_error(500)
+			return self.send_error(500)
 		else:
-			pseudojson = response.body.lstrip(")]}'\n")
-			pseudojson = self.comma_fixer_regex.sub(',null', pseudojson)
-			pseudojson = pseudojson.replace('[,', '[null,')
-			pseudojson = pseudojson.replace(',]', ',null]')
-
-			data = json.loads(pseudojson)
-			posts = data[0][0][1][0]
+			data = json.loads(response.body)
 
 			headers = {'Content-Type': 'application/atom+xml'}
 			params = {
@@ -103,60 +98,63 @@ class AtomHandler(tornado.web.RequestHandler):
 				'requesturi': 'http://%s%s' % (self.request.host, self.request.uri.split('?', 1)[0]),
 			}
 
-			if not posts:
-				params['lastupdate'] = datetime.datetime.today().strftime(self.ATOM_DATEFMT)
+			if 'items' not in data or not data['items']:
+				params['lastupdate'] = dateutils.to_atom_format(datetime.datetime.today())
 				return self._respond(headers, self.empty_feed_template.format(**params))
 
-			# Return a maximum of 10 items
-			posts = posts[:10]
+			posts = data['items']
 
-			lastupdate = datetime.datetime.fromtimestamp(float(posts[0][5])/1000)
-			params['author'] = posts[0][3]
-			#params['authorimg'] = posts[0][18]
-			params['lastupdate'] = lastupdate.strftime(self.ATOM_DATEFMT)
+			lastupdate = max(dateutils.from_iso_format(p['updated']) for p in posts)
+			params['author'] = posts[0]['actor']['displayName']
+			params['lastupdate'] = dateutils.to_atom_format(lastupdate)
 
-			headers['Last-Modified'] = lastupdate.strftime(self.HTTP_DATEFMT) 
+			headers['Last-Modified'] = dateutils.to_http_format(lastupdate)
 
 			params['entrycontent'] = u''.join(self.entry_template.format(**self.get_post_params(p)) for p in posts)
 
 			body = self.feed_template.format(**params)
 
-			Cache.set(self.cache_key, {'headers': headers, 'body': body}, time=900) # 15 minute cache
+			Cache.set(self.cache_key, {'headers': headers, 'body': body}, time=Config.getint('cache', 'stream-expire'))
 			return self._respond(headers, body)
 
 	def get_post_params(self, post):
-		post_timestamp = datetime.datetime.fromtimestamp(float(post[5])/1000)
-		post_id = post[21]
-		permalink = 'https://plus.google.com/%s' % post_id
+		post_updated = dateutils.from_iso_format(post['updated'])
+		post_published = dateutils.from_iso_format(post['published'])
+		post_id = post['id']
+		permalink = post['url']
+		item = post['object']
 		
-		# post[4] is the full post text (with HTML).
-		# not sure what post[47] is, but plusfeed uses it if it exists
-		content = [post[47] or post[4] or '']
+		if post['verb'] == 'post':
 
-		if post[44]: # "originally shared by"
+			content = [item['content']]
+
+		elif post['verb'] == 'share':
+			content = [post['annotation']]
+
 			content.append('<br/><br/>')
-			content.append('<a href="https://plus.google.com/%s">%s</a>' % (post[44][1], post[44][0]))
+			content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
 			content.append(' originally shared this post: ')
+			content.append('<br/><blockquote>')
+			content.append(item['content'])
+			content.append('</blockquote>')
 
-		if post[66]: # attached content
-			attach = post[66]
-	
-			if attach[0][1]: # attached link
+		if 'attachments' in item: # attached content
+			for attach in item['attachments']:
+
 				content.append('<br/><br/>')
-				content.append('<a href="%s">%s</a>' % (attach[0][1], attach[0][3]))
-
-			if attach[0][6]: #attached media
-				media = attach[0][6][0]
-
-				if media[1] and media[1].startswith('image'): # attached image
-					content.append('<br/><br/>')
-					content.append('<img src="http:%s" alt="attached image"/>' % media[2])
-				elif len(media) >= 9: # some other attached media
-					try:
-						content.append('<br/><br/>')
-						content.append('<a href="%s">%s</a>' % (media[8], media[8]))
-					except:
-						pass
+				if attach['objectType'] == 'article':
+					# Attached link
+					content.append('<a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+				elif attach['objectType'] == 'photo':
+					# Attached image
+					content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
+						attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
+				elif attach['objectType'] == 'video':
+					# Attached video
+					content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+				else:
+					# Unrecognized attachment type
+					content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
 
 		# If no actual parseable content was found, just link to the post
 		post_content = u''.join(content) or permalink
@@ -178,8 +176,9 @@ class AtomHandler(tornado.web.RequestHandler):
 		return {
 			'title': post_title,
 			'permalink': xhtml_escape(permalink),
-			'postatomdate': post_timestamp.strftime(self.ATOM_DATEFMT),
-			'postdate': post_timestamp.strftime('%Y-%m-%d'),
+			'postatomdate': dateutils.to_atom_format(post_updated),
+			'postatompubdate': dateutils.to_atom_format(post_published),
+			'postdate': post_published.strftime('%Y-%m-%d'),
 			'id': xhtml_escape(post_id),
 			'summary': xhtml_escape(post_content),
 		}
@@ -189,6 +188,7 @@ class AtomHandler(tornado.web.RequestHandler):
   <title>{title}</title>
   <link href="{permalink}" rel="alternate" />
   <updated>{postatomdate}</updated>
+  <published>{postatompubdate}</published>
   <id>tag:plus.google.com,{postdate}:/{id}/</id>
   <summary type="html">{summary}</summary>
  </entry>
@@ -220,6 +220,7 @@ class AtomHandler(tornado.web.RequestHandler):
     <link href="http://plus.google.com/{userid}"/>
     <id>https://plus.google.com/{userid}</id>
     <updated>{lastupdate}</updated>
+    <published>{lastupdate}</published>
     <summary>Google+ user {userid}  has not made any posts public.</summary>
   </entry>
 </feed>

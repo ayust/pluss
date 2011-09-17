@@ -33,7 +33,7 @@ class TokenIdMapping(Table):
 	def create(cls):
 		cls.conn.execute("""
 			CREATE TABLE IF NOT EXISTS token_id_mapping (
-				person_id INTEGER,
+				person_id TEXT,
 				refresh_token TEXT,
 				PRIMARY KEY(person_id)
 			)""")
@@ -44,7 +44,7 @@ class TokenIdMapping(Table):
 		cls.conn.execute("""
 			INSERT OR REPLACE INTO token_id_mapping
 			(person_id, refresh_token) VALUES (?, ?)
-		""", id, token)
+		""", (id, token))
 		cls.conn.commit()
 
 	@classmethod
@@ -54,7 +54,7 @@ class TokenIdMapping(Table):
 			FROM token_id_mapping
 			WHERE person_id = ?
 			LIMIT 1
-		""", id)
+		""", (id,))
 		if not cursor:
 			return None
 		row = cursor.fetchone()

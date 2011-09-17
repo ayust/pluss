@@ -30,7 +30,7 @@ class Cache(object):
 			return func(*args, **kwargs)
 
 		call_dump = json.dumps([func.__module__, func.__name__, args, kwargs])
-		memcache_key = 'pluss--%s' % hashlib.md5(call_dump).hexdigest()
+		memcache_key = str('pluss--%s' % hashlib.md5(call_dump).hexdigest())
 		result = cls.client.get(memcache_key)
 		if not result:
 			result = func(*args, **kwargs)
@@ -39,20 +39,25 @@ class Cache(object):
 
 	@classmethod
 	def get(cls, *args, **kwargs):
+		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.get(*args, **kwargs)
 
 	@classmethod
 	def set(cls, *args, **kwargs):
+		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.set(*args, **kwargs)
 
 	@classmethod
 	def delete(cls, *args, **kwargs):
+		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.delete(*args, **kwargs)
 
 	@classmethod
 	def incr(cls, *args, **kwargs):
+		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.incr(*args, **kwargs)
 
 	@classmethod
 	def decr(cls, *args, **kwargs):
+		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.decr(*args, **kwargs)
