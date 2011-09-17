@@ -51,8 +51,10 @@ class AtomHandler(tornado.web.RequestHandler):
 
 		self.cache_key = self.cache_key_template % user_id
 		cached_result = Cache.get(self.cache_key)
-		if cached_result and not self.request.arguments.get('flush', [None])[0]:
-			return self._respond(**cached_result)
+		flush_requested = self.request.arguments.get('flush', [None])[0]
+		if cached_result:
+			if not Config.getboolean('cache', 'allow-flush') or not flush_requested:
+				return self._respond(**cached_result)
 
 		OAuth2Handler.authed_fetch(user_id, self.profile_json_url, self._on_api_response)
 
