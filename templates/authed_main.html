@@ -10,7 +10,16 @@
 
 {% block auth_prompt %}
 		<p><strong>You <em>do</em> seem to be authenticated already.</strong>
-		If you'd like to make pluss proxy a <em>different</em> user feed, you
+		If you'd like for your feed to keep working but this page to "forget" who
+		you are (for instance, if you set up your feed from a public computer),
+		<a href="/clear" title="Click to clear your web cookie (but leave your feed active).">
+		click here to clear the browser cookie</a>. If you want your pluss feed to
+		stop working, revoke the permission for pluss to access your account on the
+		<a href="https://www.google.com/accounts/b/0/IssuedAuthSubTokens">Google Accounts</a>
+		page. (If you revoke access, your feed might still be cached for a few minutes, but
+		as soon as pluss tries to update it, it'll notice it no longer has access.)</p>
+
+		<p>If you'd like to make pluss proxy a <em>different</em> user feed, you
 		can authenticate with a different Google account, after which that will
-		become the default feed link displayed on this page for you.</p>
+		become the default feed link displayed on this page for you:</p>
 {% end %}

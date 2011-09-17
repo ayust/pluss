@@ -177,6 +177,22 @@ class OAuth2Handler(tornado.web.RequestHandler):
 	@classmethod
 	def on_refresh_complete(cls, response, id, callback):
 		"""Callback for request to get a new access token based on refresh token."""
+
+		if response.code in (400, 401):
+
+			if 'invalid_grant' in response.body:
+				# Our refresh token is invalid, which means that we don't have
+				# permission to access this user's content anymore. Forget them.
+				Cache.delete(cls.auth_cache_key_template % id)
+				Cache.delete(cls.profile_cache_key_template % id)
+				TokenIdMapping.remove_id(id)
+
+			return IOLoop.instance().add_callback(lambda: callback(None))
+
+		elif response.code != 200:
+			logging.error("Non-200 response to refresh token request (%s, id=%s): %r" % (response.code, id, response.body))
+			return IOLoop.instance().add_callback(lambda: callback(None))
+
 		results = json.loads(response.body)
 
 		# sanity check
@@ -185,17 +201,23 @@ class OAuth2Handler(tornado.web.RequestHandler):
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		token = results['access_token']
-		Cache.set(cls.auth_cache_key_template  % id, token, time=results['expires_in'])
+		Cache.set(cls.auth_cache_key_template % id, token, time=results['expires_in'])
 
 		IOLoop.instance().add_callback(lambda: callback(token))
 
 	@classmethod
-	def authed_fetch(cls, user_id, url, callback, *args, **kwargs):
+	def authed_fetch(cls, user_id, url, callback, _authed_fetch_retry=True, *args, **kwargs):
 		"""Make an auth'd AsyncHTTPRequest as the given G+ user."""
-		return cls.access_token_for_id(user_id, lambda token: cls.on_fetch_got_token(url, token, callback, *args, **kwargs))
+		return cls.access_token_for_id(
+			user_id,
+			lambda token: cls.on_fetch_got_token(
+				user_id, url, token, callback, _authed_fetch_retry=_authed_fetch_retry,
+				*args, **kwargs
+			),
+		)
 
 	@classmethod
-	def on_fetch_got_token(cls, url, token, callback, *args, **kwargs):
+	def on_fetch_got_token(cls, user_id, url, token, callback, _authed_fetch_retry, *args, **kwargs):
 		if not token:
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
@@ -205,5 +227,15 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		else:
 			kwargs['headers'] = headers
 
+		def wrap_callback(response):
+			if response.code == 401:
+				Cache.delete(cls.auth_cache_key_template % user_id)
+
+				# Retry once to see if we can use a refresh token to get a new key.
+				if _authed_fetch_retry:
+					cls.authed_fetch(user_id, url, callback, _authed_fetch_retry=False, *args, **kwargs)
+			else:
+				return callback(response)
+
 		http_client = AsyncHTTPClient()
-		return http_client.fetch(url, callback, *args, **kwargs)
+		return http_client.fetch(url, wrap_callback, *args, **kwargs)

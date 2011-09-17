@@ -60,3 +60,11 @@ class TokenIdMapping(Table):
 		row = cursor.fetchone()
 		cls.conn.rollback()
 		return row[0] if row else None
+
+	@classmethod
+	def remove_id(cls, id):
+		cursor = cls.conn.execute("""
+			DELETE FROM token_id_mapping
+			WHERE person_id = ?
+		""", (id,))
+		cls.conn.commit()

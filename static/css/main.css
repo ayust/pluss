@@ -48,8 +48,12 @@ body {
 	text-align: center;
 }
 
-#content-container > p.your-feed > a {
+#content-container > p > a,
+#content-container > div > a {
 	color: #00f;
+}
+
+#content-container > p.your-feed > a {
 	text-decoration: none;
 }
 
