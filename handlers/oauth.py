@@ -77,12 +77,20 @@ class OAuth2Handler(tornado.web.RequestHandler):
 	def on_token_request_complete(self, response):
 		"""Callback for the initial OAuth token request."""
 
-		results = json.loads(response.body)
+		if response.code != 200:
+			logging.error('Tried to get token based on code, but got %s with this instead: %s' % (response.code, response.body))
+			return self.send_error(500)
+
+		try:
+			results = json.loads(response.body)
+		except ValueError:
+			logging.error('Tried to get token but got an unparseable response: %s' % response.body)
+			return self.send_error(500)
 
 		# sanity check
 		if results['token_type'] != "Bearer":
 			logging.error('Unknown token type received: %s' % results['token_type'])
-			self.send_error(500)
+			return self.send_error(500)
 
 		self.gplus_access_token = results['access_token']
 		self.gplus_refresh_token = results['refresh_token']
