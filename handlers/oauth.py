@@ -187,3 +187,22 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		Cache.set(cls.auth_cache_key_template  % id, token, time=results['expires_in'])
 
 		IOLoop.instance().add_callback(lambda: callback(token))
+
+	@classmethod
+	def authed_fetch(cls, user_id, url, callback, *args, **kwargs):
+		"""Make an auth'd AsyncHTTPRequest as the given G+ user."""
+		return cls.access_token_for_id(user_id, lambda token: cls.on_fetch_got_token(url, token, callback, *args, **kwargs))
+
+	@classmethod
+	def on_fetch_got_token(cls, url, token, callback, *args, **kwargs):
+		if not token:
+			return IOLoop.instance().add_callback(lambda: callback(None))
+
+		headers = {'Authorization': 'Bearer: %s' % token}
+		if 'headers' in kwargs:
+			kwargs['headers'].update(headers)
+		else:
+			kwargs['headers'] = headers
+
+		http_client = AsyncHTTPClient()
+		return http_client.fetch(url, callback, *args, **kwargs)
