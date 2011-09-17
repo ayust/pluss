@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 
 from util.config import Config
 
@@ -9,6 +10,7 @@ if Config.getboolean('cache', 'memcache'):
 		_hush_pyflakes = (memcache,)
 		del _hush_pyflakes
 	except ImportError:
+		logging.error("Config file has memcache enabled, but couldn't import memcache! Not caching data.")
 		memcache = None
 else:
 	memcache = None
@@ -22,7 +24,7 @@ class Cache(object):
 	will simply return None.
 	"""
 
-	client = memcache and memcache.Client(['127.0.0.1:11211'], debug=0)
+	client = memcache and memcache.Client([Config.get('cache', 'memcache-uri')], debug=0)
 
 	@classmethod
 	def call(cls, func, *args, **kwargs):
