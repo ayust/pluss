@@ -23,6 +23,7 @@ application = tornado.web.Application(
 	route.get_routes(),
 	gzip = True,
 	static_path = 'static',
+	template_path = 'templates',
 )	
 	
 if __name__ == '__main__':

@@ -31,8 +31,7 @@ class AuthRedirector(tornado.web.RequestHandler):
 class AccessDeniedHandler(tornado.web.RequestHandler):
 	"""Display a page indicating that authentication by Google was denied."""
 	def get(self):
-		self.write("""<html><body>Google access was denied. <a href="%s">Try again?</a></body></html>""" %
-			self.reverse_url('auth'))
+		self.render("denied_main.html")
 
 @route(r'/oauth2callback', name="oauth2callback")
 class OAuth2Handler(tornado.web.RequestHandler):
@@ -105,7 +104,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		# store refresh token and gplus user id in database
 		TokenIdMapping.update_refresh_token(person['id'], self.gplus_refresh_token)
 	
-		self.redirect('/atom/%s' % person['id'])
+		self.set_cookie('gplus_id', str(person['id']))
+		self.redirect('/')
 
 	# Everything below here is classmethods so they can be used during
 	# requests beyond the initial OAuth authorization flow.
