@@ -86,7 +86,9 @@ class AtomHandler(tornado.web.RequestHandler):
 	def _on_api_response(self, response):
 		if response is None:
 			logging.error("API request for %s failed." % self.gplus_user_id)
-			return self.send_error(500)
+			self.write("Unable to fetch content for this Google+ ID; it may not be authenticated. See http://%s for more information." % self.request.host)
+			self.set_status(500)
+			return self.finish()
 		if response.error:
 			logging.error("AsyncHTTPRequest error: %r" % response.error)
 			return self.send_error(500)
