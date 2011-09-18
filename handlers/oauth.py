@@ -69,6 +69,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				self.on_token_request_complete,
 				method='POST',
 				body=post_body,
+				request_timeout=20.0,
+				connect_timeout=15.0,
 			)
 	
 		# If we got here, we don't recognize why this endpoint was called.
@@ -145,6 +147,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				'https://www.googleapis.com/plus/v1/people/me',
 				lambda response: cls.on_fetch_person_complete(response, callback),
 				headers={'Authorization': 'Bearer %s' % token},
+				request_timeout=20.0,
+				connect_timeout=15.0,
 			)
 		else:
 			return IOLoop.instance.add_callback(lambda: callback(None))
@@ -178,6 +182,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				lambda response: cls.on_refresh_complete(response, id, callback),
 				method='POST',
 				body=post_body,
+				request_timeout=20.0,
+				connect_timeout=15.0,
 			)
 		else:
 			return IOLoop.instance().add_callback(lambda: callback(None))
@@ -198,7 +204,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		elif response.code != 200:
-			logging.error("Non-200 response to refresh token request (%s, id=%s): %r" % (response.code, id, response.body))
+			logging.error("Non-200 response to refresh token request (%s, id=%s, %.2f sec): %r" % (response.code, id, response.body, response.request_time))
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		results = json.loads(response.body)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import os
 import time
 
@@ -27,6 +28,11 @@ application = tornado.web.Application(
 )	
 	
 if __name__ == '__main__':
+
+	logging.basicConfig(
+		level=logging.WARNING,
+		format="%(asctime)-15s [%(process)d|%(threadName)s] %(message)s",
+	)
 
 	pid_path = _expand_path(Config.get('system', 'pid-path'))
 
