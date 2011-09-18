@@ -141,6 +141,8 @@ class AtomHandler(tornado.web.RequestHandler):
 			content.append('<br/><blockquote>')
 			content.append(item['content'])
 			content.append('</blockquote>')
+		else:
+			content = []
 
 		if 'attachments' in item: # attached content
 			for attach in item['attachments']:
