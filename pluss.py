@@ -30,7 +30,7 @@ application = tornado.web.Application(
 if __name__ == '__main__':
 
 	logging.basicConfig(
-		level=logging.WARNING,
+		level=getattr(logging, Config.get('system', 'log-level')),
 		format="%(asctime)-15s [%(process)d|%(threadName)s] %(message)s",
 	)
 
