@@ -144,6 +144,12 @@ class AtomHandler(tornado.web.RequestHandler):
 
 		elif post['verb'] == 'checkin':
 			content = [item['content']]
+			place = post.get('placeName', '')
+			if place:
+				if item['content']:
+					# Add some spacing if there's actually a comment
+					content.append('<br/><br/>')
+				content.append('Checked in at %s' % place)
 
 		else:
 			content = []
