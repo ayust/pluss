@@ -18,9 +18,10 @@ Dependencies
 Note that it is *possible* that `pluss` might work with earlier versions of some of these packages, but I do not plan to support anything less than what is listed here. Caveat emptor.
 
  - [Python][3] 2.7+
- - [`tornado`][1] 1.0.1+ (should be forwards-compatible with Tornado 2.x)
  - [`BeautifulSoup`][2] 3.2+
  - [`python-memcache`][4] 1.45+ (optional, but required for `memcached` support which is highly recommended)
+
+([`tornado`][1] version 2.0 is already bundled with `pluss` for simplicity.)
 
 Installation
 ------------
