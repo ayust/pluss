@@ -135,9 +135,11 @@ class AtomHandler(tornado.web.RequestHandler):
 		elif post['verb'] == 'share':
 			content = [post['annotation']]
 
-			content.append('<br/><br/>')
-			content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
-			content.append(' originally shared this post: ')
+			if 'actor' in item:
+				content.append('<br/><br/>')
+				content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
+				content.append(' originally shared this post: ')
+
 			content.append('<br/><blockquote>')
 			content.append(item['content'])
 			content.append('</blockquote>')
