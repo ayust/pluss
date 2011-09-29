@@ -204,7 +204,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		elif response.code != 200:
-			logging.error("Non-200 response to refresh token request (%s, id=%s, %.2f sec): %r" % (response.code, id, response.body, response.request_time))
+			logging.error("Non-200 response to refresh token request (%s, id=%s): %r" % (response.code, id, response.body))
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		results = json.loads(response.body)
