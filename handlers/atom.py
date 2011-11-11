@@ -137,7 +137,10 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			if 'actor' in item:
 				content.append('<br/><br/>')
-				content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
+				if 'url' in item['actor']:
+					content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
+				else:
+					content.append(item['actor']['displayName'])
 				content.append(' originally shared this post: ')
 
 			content.append('<br/><blockquote>')
