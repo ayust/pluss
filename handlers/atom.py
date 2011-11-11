@@ -137,11 +137,12 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			if 'actor' in item:
 				content.append('<br/><br/>')
-				if 'url' in item['actor']:
+				if 'url' in item['actor'] and 'displayName' in item['actor']:
 					content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
-				else:
+					content.append(' originally shared this post: ')
+				elif 'displayName' in item['actor']:
 					content.append(item['actor']['displayName'])
-				content.append(' originally shared this post: ')
+					content.append(' originally shared this post: ')
 
 			content.append('<br/><blockquote>')
 			content.append(item['content'])
