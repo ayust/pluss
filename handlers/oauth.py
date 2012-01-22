@@ -95,7 +95,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 			return self.send_error(500)
 
 		self.gplus_access_token = results['access_token']
-		self.gplus_refresh_token = results['refresh_token']
+		self.gplus_refresh_token = results.get('refresh_token', None)
 		self.gplus_expires_at = datetime.datetime.today() + datetime.timedelta(seconds=results['expires_in'])
 
 		return self.fetch_person_by_token(
@@ -112,7 +112,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 		)
 
 		# store refresh token and gplus user id in database
-		TokenIdMapping.update_refresh_token(person['id'], self.gplus_refresh_token)
+		if self.gplus_refresh_token is not None:
+			TokenIdMapping.update_refresh_token(person['id'], self.gplus_refresh_token)
 	
 		self.set_cookie('gplus_id', str(person['id']))
 		self.redirect('/')
