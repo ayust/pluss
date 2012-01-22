@@ -24,6 +24,8 @@ class AuthRedirector(tornado.web.RequestHandler):
 			'redirect_uri': 'http://%s/oauth2callback' % self.request.host,
 			'scope': 'https://www.googleapis.com/auth/plus.me', # G+ API
 			'response_type': 'code', # server-side webapp
+			'access_type': 'offline', # needed to get refresh tokens
+			'approval_prompt': 'force', # needed to get refresh tokens
 		})
 		self.redirect(redir_uri)
 
