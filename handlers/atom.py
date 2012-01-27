@@ -13,19 +13,18 @@ from util.cache import Cache
 from util.config import Config
 from util.route import route
 
-@route(r'/atom/(\d+)')
+space_compress_regex = re.compile(r'\s+')
+
+@route(r'/atom/(\d+)(?:/(\d+))?')
 class AtomHandler(tornado.web.RequestHandler):
 	"""Fetches the public posts for a given G+ user id as an Atom feed."""
 
-	profile_json_url = 'https://www.googleapis.com/plus/v1/people/me/activities/public?maxResults=10'
+	json_url = 'https://www.googleapis.com/plus/v1/people/%s/activities/public?maxResults=10'
 	cache_key_template = 'pluss--gplusid--atom--2--%s'
 	ratelimit_key_template = 'pluss--remoteip--ratelimit--1--%s'
 
-	space_compress_regex = re.compile(r'\s+')
-
-
 	@tornado.web.asynchronous
-	def get(self, user_id):
+	def get(self, user_id, page_id):
 
 		ratelimit_key = self.ratelimit_key_template % self.request.remote_ip
 		remote_ip_rate = Cache.incr(ratelimit_key)
@@ -44,19 +43,29 @@ class AtomHandler(tornado.web.RequestHandler):
 			return self.finish()
 
 		self.gplus_user_id = user_id
+		self.gplus_page_id = page_id
 
 		if len(user_id) != 21:
 			self.write("Google+ profile IDs are exactly 21 digits long. Please specify a proper profile ID.")
 			return self.finish()
 
+		if page_id and len(page_id) != 21:
+			self.write("Google+ page IDs are exactly 21 digits long. Please specify a proper page ID.")
+
 		self.cache_key = self.cache_key_template % user_id
+		if page_id:
+			self.cache_key += str(page_id)
+
 		cached_result = Cache.get(self.cache_key)
 		flush_requested = self.request.arguments.get('flush', [None])[0]
 		if cached_result:
 			if not Config.getboolean('cache', 'allow-flush') or not flush_requested:
 				return self._respond(**cached_result)
 
-		OAuth2Handler.authed_fetch(user_id, self.profile_json_url, self._on_api_response)
+		if page_id:
+			OAuth2Handler.authed_fetch(user_id, self.json_url % page_id, self._on_api_response)
+		else:
+			OAuth2Handler.authed_fetch(user_id, self.json_url % 'me', self._on_api_response)
 
 	def _respond(self, headers=None, body='', **kwargs):
 		if headers is None:
@@ -97,14 +106,14 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			headers = {'Content-Type': 'application/atom+xml'}
 			params = {
-				'userid': self.gplus_user_id,
+				'userid': self.gplus_page_id or self.gplus_user_id,
 				'baseurl': 'http://%s' % self.request.host,
 				'requesturi': 'http://%s%s' % (self.request.host, self.request.uri.split('?', 1)[0]),
 			}
 
 			if 'items' not in data or not data['items']:
 				params['lastupdate'] = dateutils.to_atom_format(datetime.datetime.today())
-				return self._respond(headers, self.empty_feed_template.format(**params))
+				return self._respond(headers, empty_feed_template.format(**params))
 
 			posts = data['items']
 
@@ -114,101 +123,101 @@ class AtomHandler(tornado.web.RequestHandler):
 
 			headers['Last-Modified'] = dateutils.to_http_format(lastupdate)
 
-			params['entrycontent'] = u''.join(self.entry_template.format(**self.get_post_params(p)) for p in posts)
+			params['entrycontent'] = u''.join(entry_template.format(**get_post_params(p)) for p in posts)
 
-			body = self.feed_template.format(**params)
+			body = feed_template.format(**params)
 
 			Cache.set(self.cache_key, {'headers': headers, 'body': body}, time=Config.getint('cache', 'stream-expire'))
 			return self._respond(headers, body)
 
-	def get_post_params(self, post):
-		post_updated = dateutils.from_iso_format(post['updated'])
-		post_published = dateutils.from_iso_format(post['published'])
-		post_id = post['id']
-		permalink = post['url']
-		item = post['object']
-		
-		if post['verb'] == 'post':
+def get_post_params(post):
+	post_updated = dateutils.from_iso_format(post['updated'])
+	post_published = dateutils.from_iso_format(post['published'])
+	post_id = post['id']
+	permalink = post['url']
+	item = post['object']
+	
+	if post['verb'] == 'post':
 
-			content = [item['content']]
+		content = [item['content']]
 
-		elif post['verb'] == 'share':
-			content = [post['annotation']]
+	elif post['verb'] == 'share':
+		content = [post['annotation']]
 
-			if 'actor' in item:
+		if 'actor' in item:
+			content.append('<br/><br/>')
+			if 'url' in item['actor'] and 'displayName' in item['actor']:
+				content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
+				content.append(' originally shared this post: ')
+			elif 'displayName' in item['actor']:
+				content.append(item['actor']['displayName'])
+				content.append(' originally shared this post: ')
+
+		content.append('<br/><blockquote>')
+		content.append(item['content'])
+		content.append('</blockquote>')
+
+	elif post['verb'] == 'checkin':
+		content = [item['content']]
+		place = post.get('placeName', '')
+		if place:
+			if item['content']:
+				# Add some spacing if there's actually a comment
 				content.append('<br/><br/>')
-				if 'url' in item['actor'] and 'displayName' in item['actor']:
-					content.append('<a href="%s">%s</a>' % (item['actor']['url'], item['actor']['displayName']))
-					content.append(' originally shared this post: ')
-				elif 'displayName' in item['actor']:
-					content.append(item['actor']['displayName'])
-					content.append(' originally shared this post: ')
+			content.append('Checked in at %s' % place)
 
-			content.append('<br/><blockquote>')
-			content.append(item['content'])
-			content.append('</blockquote>')
+	else:
+		content = []
 
-		elif post['verb'] == 'checkin':
-			content = [item['content']]
-			place = post.get('placeName', '')
-			if place:
-				if item['content']:
-					# Add some spacing if there's actually a comment
-					content.append('<br/><br/>')
-				content.append('Checked in at %s' % place)
+	if 'attachments' in item: # attached content
+		for attach in item['attachments']:
 
-		else:
-			content = []
-
-		if 'attachments' in item: # attached content
-			for attach in item['attachments']:
-
-				content.append('<br/><br/>')
-				if attach['objectType'] == 'article':
-					# Attached link
-					content.append('<a href="%s">%s</a>' % (attach['url'], attach['displayName']))
-				elif attach['objectType'] == 'photo':
-					# Attached image
-					content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
-						attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
-				elif attach['objectType'] == 'photo-album':
-					# Attached photo album link
-					content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
-				elif attach['objectType'] == 'video':
-					# Attached video
-					content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
-				else:
-					# Unrecognized attachment type
-					content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
-
-		# If no actual parseable content was found, just link to the post
-		post_content = u''.join(content) or permalink
-
-		# Generate the post title out of just text [max: 100 characters]
-		post_title = u' '.join(x.string for x in soup(post_content).findAll(text=True))
-		post_title = self.space_compress_regex.sub(' ', post_title)
-		if len(post_title) > 100:
-			if post_title == permalink:
-				post_title = u"A public G+ post"
+			content.append('<br/><br/>')
+			if attach['objectType'] == 'article':
+				# Attached link
+				content.append('<a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+			elif attach['objectType'] == 'photo':
+				# Attached image
+				content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
+					attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
+			elif attach['objectType'] == 'photo-album':
+				# Attached photo album link
+				content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+			elif attach['objectType'] == 'video':
+				# Attached video
+				content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
 			else:
-				candidate_title = post_title[:97]
-				if '&' in candidate_title[-5:]: # Don't risk cutting off HTML entities
-					candidate_title = candidate_title.rsplit('&', 1)[0]
-				if ' ' in candidate_title[-5:]: # Reasonably avoid cutting off words
-					candidate_title = candidate_title.rsplit(' ', 1)[0]
-				post_title = u"%s..." % candidate_title
+				# Unrecognized attachment type
+				content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
 
-		return {
-			'title': post_title,
-			'permalink': xhtml_escape(permalink),
-			'postatomdate': dateutils.to_atom_format(post_updated),
-			'postatompubdate': dateutils.to_atom_format(post_published),
-			'postdate': post_published.strftime('%Y-%m-%d'),
-			'id': xhtml_escape(post_id),
-			'summary': xhtml_escape(post_content),
-		}
+	# If no actual parseable content was found, just link to the post
+	post_content = u''.join(content) or permalink
 
-	entry_template = u"""
+	# Generate the post title out of just text [max: 100 characters]
+	post_title = u' '.join(x.string for x in soup(post_content).findAll(text=True))
+	post_title = space_compress_regex.sub(' ', post_title)
+	if len(post_title) > 100:
+		if post_title == permalink:
+			post_title = u"A public G+ post"
+		else:
+			candidate_title = post_title[:97]
+			if '&' in candidate_title[-5:]: # Don't risk cutting off HTML entities
+				candidate_title = candidate_title.rsplit('&', 1)[0]
+			if ' ' in candidate_title[-5:]: # Reasonably avoid cutting off words
+				candidate_title = candidate_title.rsplit(' ', 1)[0]
+			post_title = u"%s..." % candidate_title
+
+	return {
+		'title': post_title,
+		'permalink': xhtml_escape(permalink),
+		'postatomdate': dateutils.to_atom_format(post_updated),
+		'postatompubdate': dateutils.to_atom_format(post_published),
+		'postdate': post_published.strftime('%Y-%m-%d'),
+		'id': xhtml_escape(post_id),
+		'summary': xhtml_escape(post_content),
+	}
+
+entry_template = u"""
  <entry>
   <title>{title}</title>
   <link href="{permalink}" rel="alternate" />
@@ -219,7 +228,7 @@ class AtomHandler(tornado.web.RequestHandler):
  </entry>
 """
 
-	feed_template = u"""<?xml version="1.0" encoding="UTF-8"?>
+feed_template = u"""<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
  <title>{author} - Google+ Public Posts</title>
  <link href="https://plus.google.com/{userid}" rel="alternate" />
@@ -233,7 +242,7 @@ class AtomHandler(tornado.web.RequestHandler):
 </feed>
 """
 
-	empty_feed_template = u"""<?xml version="1.0" encoding="utf-8"?>
+empty_feed_template = u"""<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>No Public Items Found for {userid}</title>
   <link href="https://plus.google.com/{userid}" rel="alternate"></link>
