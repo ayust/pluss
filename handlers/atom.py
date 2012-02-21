@@ -118,7 +118,7 @@ class AtomHandler(tornado.web.RequestHandler):
 			posts = data['items']
 
 			lastupdate = max(dateutils.from_iso_format(p['updated']) for p in posts)
-			params['author'] = posts[0]['actor']['displayName']
+			params['author'] = xhtml_escape(posts[0]['actor']['displayName'])
 			params['lastupdate'] = dateutils.to_atom_format(lastupdate)
 
 			headers['Last-Modified'] = dateutils.to_http_format(lastupdate)
@@ -175,17 +175,17 @@ def get_post_params(post):
 			content.append('<br/><br/>')
 			if attach['objectType'] == 'article':
 				# Attached link
-				content.append('<a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+				content.append('<a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached link')))
 			elif attach['objectType'] == 'photo':
 				# Attached image
 				content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
 					attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
 			elif attach['objectType'] == 'photo-album':
 				# Attached photo album link
-				content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+				content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached album')))
 			elif attach['objectType'] == 'video':
 				# Attached video
-				content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach['displayName']))
+				content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached video')))
 			else:
 				# Unrecognized attachment type
 				content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
