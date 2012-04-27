@@ -12,6 +12,8 @@ It works similarly to a proxy server - you request the feed url via HTTP from th
 
 `pluss` will also cache its feed results for a given user if `memcache` is available, thus reducing overall bandwidth usage, especially if multiple different clients are accessing the same feed. *(Feeds are cached for 15 minutes, so it may take a few minutes after a new post is shared for it to show up in the feed if caching is enabled, or for a feed with revoked access to disappear.)*
 
+A running pluss server is available for general usage [here](http://pluss.aiiane.com).
+
 Dependencies
 ------------
 
