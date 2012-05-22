@@ -96,7 +96,7 @@ class AtomHandler(tornado.web.RequestHandler):
 		if response is None:
 			logging.error("API request for %s failed." % self.gplus_user_id)
 			self.write("Unable to fetch content for this Google+ ID; it may not be authenticated. See http://%s for more information." % self.request.host)
-			self.set_status(500)
+			self.set_status(401)
 			return self.finish()
 		if response.error:
 			if response.code == 403:
