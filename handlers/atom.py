@@ -19,7 +19,7 @@ space_compress_regex = re.compile(r'\s+')
 class AtomHandler(tornado.web.RequestHandler):
 	"""Fetches the public posts for a given G+ user id as an Atom feed."""
 
-	json_url = 'https://www.googleapis.com/plus/v1/people/%s/activities/public?maxResults=10'
+	json_url = 'https://www.googleapis.com/plus/v1/people/%s/activities/public?maxResults=10&userIp=%s'
 	cache_key_template = 'pluss--gplusid--atom--2--%s'
 	ratelimit_key_template = 'pluss--remoteip--ratelimit--1--%s'
 
@@ -63,9 +63,9 @@ class AtomHandler(tornado.web.RequestHandler):
 				return self._respond(**cached_result)
 
 		if page_id:
-			OAuth2Handler.authed_fetch(user_id, self.json_url % page_id, self._on_api_response)
+			OAuth2Handler.authed_fetch(user_id, self.json_url % (page_id, self.request.remote_ip), self._on_api_response)
 		else:
-			OAuth2Handler.authed_fetch(user_id, self.json_url % 'me', self._on_api_response)
+			OAuth2Handler.authed_fetch(user_id, self.json_url % ('me', self.request.remote_ip), self._on_api_response)
 
 	def _respond(self, headers=None, body='', **kwargs):
 		if headers is None:
