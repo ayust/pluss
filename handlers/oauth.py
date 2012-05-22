@@ -189,6 +189,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				connect_timeout=15.0,
 			)
 		else:
+			logging.error("Unable to update access token for %s, no refresh token stored.", id)
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 	@classmethod
@@ -203,7 +204,9 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				Cache.delete(cls.auth_cache_key_template % id)
 				Cache.delete(cls.profile_cache_key_template % id)
 				TokenIdMapping.remove_id(id)
+				logging.error("Access was revoked for %s; cached data deleted.", id)
 
+			logging.error("HTTP %s while trying to refresh access token for %s.", response.code, id)
 			return IOLoop.instance().add_callback(lambda: callback(None))
 
 		elif response.code != 200:
@@ -251,6 +254,8 @@ class OAuth2Handler(tornado.web.RequestHandler):
 				# Retry once to see if we can use a refresh token to get a new key.
 				if _authed_fetch_retry:
 					cls.authed_fetch(user_id, url, callback, _authed_fetch_retry=False, *args, **kwargs)
+				else:
+					logging.warning("Abandoning request for %s after retry.", url)
 			else:
 				return callback(response)
 
