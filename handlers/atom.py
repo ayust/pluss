@@ -99,8 +99,14 @@ class AtomHandler(tornado.web.RequestHandler):
 			self.set_status(500)
 			return self.finish()
 		if response.error:
-			logging.error("AsyncHTTPRequest error: %r" % response.error)
-			return self.send_error(500)
+			if response.code == 403:
+				logging.error("API Request 403: %r" % (json.loads(response.body)))
+				self.set_status(503)
+				self.write("Unable to fulfill request at this time - Google+ API rate limit exceeded.")
+				return self.finish()
+			else:
+				logging.error("AsyncHTTPRequest error: %r, %r" % (response.error, response))
+				return self.send_error(500)
 		else:
 			data = json.loads(response.body)
 
