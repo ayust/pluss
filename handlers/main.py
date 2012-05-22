@@ -22,6 +22,13 @@ class MainHandler(tornado.web.RequestHandler):
 		else:
 			self.render('main.html')
 
+@route(r'/privacy')
+class PrivacyHandler(tornado.web.RequestHandler):
+	"""Display the Privacy Policy"""
+
+	def get(self):
+		self.render('privacy.html')
+
 @route(r'/clear')
 class ClearHandler(tornado.web.RequestHandler):
 
