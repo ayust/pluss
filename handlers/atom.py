@@ -148,7 +148,7 @@ def get_post_params(post):
 		content = [item['content']]
 
 	elif post['verb'] == 'share':
-		content = [post['annotation']]
+		content = [post.get('annotation', 'Shared:')]
 
 		if 'actor' in item:
 			content.append('<br/><br/>')
