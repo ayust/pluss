@@ -182,6 +182,11 @@ def get_post_params(post):
 			if attach['objectType'] == 'article':
 				# Attached link
 				content.append('<a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached link')))
+				# Possible attached photo
+				if 'image' in attach:
+					content.append('<br/><img src="%s" alt="%s" />' % (attach['image']['url'],
+						attach['image'].get('displayName', 'attached image')))
+
 			elif attach['objectType'] == 'photo':
 				# Attached image
 				content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
