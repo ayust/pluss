@@ -177,8 +177,8 @@ def get_post_params(post):
 
 	if 'attachments' in item: # attached content
 		for attach in item['attachments']:
-
-			content.append('<br/><br/>')
+			if content:
+				content.append('<br/><br/>')
 			if attach['objectType'] == 'article':
 				# Attached link
 				content.append('<a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached link')))
