@@ -214,12 +214,12 @@ def get_post_params(post):
 				content_for_title.extend(content)
 
 	# If no actual parseable content was found, just link to the post
-	post_content = u''.join(content) or permalink
+	post_content = u''.join(content).strip() or permalink
 
 	# Generate the post title out of just text [max: 100 characters]
 	post_title_content = re.split(r'<br\s*/?>', ''.join(content_for_title))[0]
 	post_title = u' '.join(x.string for x in soup(post_title_content).findAll(text=True))
-	post_title = space_compress_regex.sub(' ', post_title)
+	post_title = space_compress_regex.sub(' ', post_title).strip()
 	if len(post_title) > 100:
 		if post_title == permalink or not post_title:
 			post_title = u"A public G+ post"
