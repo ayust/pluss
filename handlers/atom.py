@@ -142,13 +142,16 @@ def get_post_params(post):
 	post_id = post['id']
 	permalink = post['url']
 	item = post['object']
+	content_for_title = []
 
 	if post['verb'] == 'post':
 
 		content = [item['content']]
+                content_for_title.extend(content)
 
 	elif post['verb'] == 'share':
-		content = [post.get('annotation', 'Shared:')]
+		content = [post.get('annotation')] if post.get('annotation') else []
+		content_for_title.extend(content)
 
 		if 'actor' in item:
 			content.append('<br/><br/>')
@@ -158,10 +161,13 @@ def get_post_params(post):
 			elif 'displayName' in item['actor']:
 				content.append(item['actor']['displayName'])
 				content.append(' originally shared this post: ')
+			content_for_title.append('Shared from %s: ' % item['actor'].get('displayName', 'elsewhere'))
 
 		content.append('<br/><blockquote>')
 		content.append(item['content'])
 		content.append('</blockquote>')
+
+		content_for_title.append(item['content'])
 
 	elif post['verb'] == 'checkin':
 		content = [item['content']]
@@ -171,6 +177,7 @@ def get_post_params(post):
 				# Add some spacing if there's actually a comment
 				content.append('<br/><br/>')
 			content.append('Checked in at %s' % place)
+		content_for_title.extend(content)
 
 	else:
 		content = []
@@ -179,6 +186,9 @@ def get_post_params(post):
 		for attach in item['attachments']:
 			if content:
 				content.append('<br/><br/>')
+				attach_title = False
+			else:
+				attach_title = True
 			if attach['objectType'] == 'article':
 				# Attached link
 				content.append('<a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached link')))
@@ -200,17 +210,18 @@ def get_post_params(post):
 			else:
 				# Unrecognized attachment type
 				content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
+			if attach_title:
+				content_for_title.extend(content)
 
 	# If no actual parseable content was found, just link to the post
 	post_content = u''.join(content) or permalink
 
 	# Generate the post title out of just text [max: 100 characters]
-	# ignoring anything after the first line break.
-	post_title_content = re.split(r'<br\s*/?>', post_content)[0]
+	post_title_content = re.split(r'<br\s*/?>', ''.join(content_for_title))[0]
 	post_title = u' '.join(x.string for x in soup(post_title_content).findAll(text=True))
 	post_title = space_compress_regex.sub(' ', post_title)
 	if len(post_title) > 100:
-		if post_title == permalink:
+		if post_title == permalink or not post_title:
 			post_title = u"A public G+ post"
 		else:
 			candidate_title = post_title[:97]
