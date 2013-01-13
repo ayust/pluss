@@ -205,7 +205,9 @@ def get_post_params(post):
 	post_content = u''.join(content) or permalink
 
 	# Generate the post title out of just text [max: 100 characters]
-	post_title = u' '.join(x.string for x in soup(post_content).findAll(text=True))
+	# ignoring anything after the first line break.
+	post_title_content = re.split(r'<br\s*/?>', post_content)[0]
+	post_title = u' '.join(x.string for x in soup(post_title_content).findAll(text=True))
 	post_title = space_compress_regex.sub(' ', post_title)
 	if len(post_title) > 100:
 		if post_title == permalink:
