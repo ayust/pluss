@@ -220,10 +220,10 @@ def get_post_params(post):
 	post_title_content = re.split(r'<br\s*/?>', ''.join(content_for_title))[0]
 	post_title = u' '.join(x.string for x in soup(post_title_content).findAll(text=True))
 	post_title = space_compress_regex.sub(' ', post_title).strip()
-	if len(post_title) > 100:
-		if post_title == permalink or not post_title:
-			post_title = u"A public G+ post"
-		else:
+	if post_title == permalink or not post_title:
+		post_title = u"A public G+ post"
+	else:
+		if len(post_title) > 100:
 			candidate_title = post_title[:97]
 			if '&' in candidate_title[-5:]: # Don't risk cutting off HTML entities
 				candidate_title = candidate_title.rsplit('&', 1)[0]
