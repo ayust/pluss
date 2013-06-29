@@ -201,7 +201,7 @@ def get_post_params(post):
 				# Attached image
 				content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
 					attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
-			elif attach.get('objectType') == 'photo-album' or attach['objectType'] == 'album':
+			elif attach.get('objectType') == 'photo-album' or attach.get('objectType') == 'album':
 				# Attached photo album link
 				content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached album')))
 			elif attach.get('objectType') == 'video':
