@@ -189,7 +189,7 @@ def get_post_params(post):
 				attach_title = False
 			else:
 				attach_title = True
-			if attach['objectType'] == 'article':
+			if attach.get('objectType') == 'article':
 				# Attached link
 				content.append('<a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached link')))
 				# Possible attached photo
@@ -197,19 +197,20 @@ def get_post_params(post):
 					content.append('<br/><img src="%s" alt="%s" />' % (attach['image']['url'],
 						attach['image'].get('displayName', 'attached image')))
 
-			elif attach['objectType'] == 'photo':
+			elif attach.get('objectType') == 'photo':
 				# Attached image
 				content.append('<img src="%s" alt="%s" />' % (attach['image']['url'],
 					attach['image'].get('displayName', 'attached image'))) # G+ doesn't always supply alt text...
-			elif attach['objectType'] == 'photo-album' or attach['objectType'] == 'album':
+			elif attach.get('objectType') == 'photo-album' or attach['objectType'] == 'album':
 				# Attached photo album link
 				content.append('Album: <a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached album')))
-			elif attach['objectType'] == 'video':
+			elif attach.get('objectType') == 'video':
 				# Attached video
 				content.append('Video: <a href="%s">%s</a>' % (attach['url'], attach.get('displayName', 'attached video')))
 			else:
 				# Unrecognized attachment type
-				content.append('[unsupported post attachment of type "%s"]' % attach['objectType'])
+				content.append('[unsupported post attachment of type "%s"]' % attach.get('objectType'))
+				logging.info('Unrecognized attachment: %r', attach)
 			if attach_title:
 				content_for_title.extend(content)
 
@@ -283,3 +284,5 @@ empty_feed_template = u"""<?xml version="1.0" encoding="utf-8"?>
   </entry>
 </feed>
 """
+
+# vim: set ts=4 sts=4 sw=4 noet:
