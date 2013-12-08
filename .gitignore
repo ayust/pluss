@@ -4,3 +4,4 @@
 .*.swp
 /pluss.cfg
 *.sqlite
+venv/
