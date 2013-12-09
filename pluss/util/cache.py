@@ -63,3 +63,6 @@ class Cache(object):
 	def decr(cls, *args, **kwargs):
 		args = (str(args[0]),) + args[1:]
 		return cls.client and cls.client.decr(*args, **kwargs)
+
+
+# vim: set ts=4 sts=4 sw=4 et:

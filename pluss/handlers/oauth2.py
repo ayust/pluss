@@ -137,7 +137,10 @@ def oauth2():
 ################################################################################
 
 # Exception raised by any of the following if they are unable to acquire a result.
-class UnavailableException(Exception): pass
+class UnavailableException(Exception):
+    def __init__(self, message, status, *args, **kwargs):
+        super(UnavailableException, self).__init__(*args, **kwargs)
+        self.status = status
 
 def get_person_by_access_token(token):
     """Fetch details about an individual from the G+ API and return a dict with the response."""
@@ -148,9 +151,9 @@ def get_person_by_access_token(token):
         response = session.post(GPLUS_API_ME_ENDPOINT, headers=headers, timeout=GOOGLE_API_TIMEOUT)
         person = response.json()
     except requests.exceptions.Timeout:
-        raise UnavailableException('Person API request timed out.')
+        raise UnavailableException('Person API request timed out.', 504)
     except Exception as e:
-        raise UnavailableException('Person API request raised exception "%r".' % e)
+        raise UnavailableException('Person API request raised exception "%r".' % e, 502)
 
     Cache.set(PROFILE_CACHE_KEY_TEMPLATE % person['id'], person,
         time=Config.getint('cache', 'profile-expire'))
@@ -177,7 +180,7 @@ def get_access_token_for_id(gplus_id):
     # If we don't have a cached token, see if we have a refresh token available.
     refresh_token = TokenIdMapping.lookup_refresh_token(gplus_id)
     if not refresh_token:
-        raise UnavailableException('No tokens available for G+ id %s.' % gplus_id)
+        raise UnavailableException('No tokens available for G+ id %s.' % gplus_id, 401)
 
     data = {
         'client_id': Config.get('oauth', 'client-id'),
@@ -189,9 +192,9 @@ def get_access_token_for_id(gplus_id):
         response = session.post(OAUTH2_BASE + '/token', data=data, timeout=GOOGLE_API_TIMEOUT)
         result = response.json()
     except requests.exceptions.Timeout:
-        raise UnavailableException('Access token API request timed out.')
+        raise UnavailableException('Access token API request timed out.', 504)
     except Exception as e:
-        raise UnavailableException('Access token API request raised exception "%r".' % e)
+        raise UnavailableException('Access token API request raised exception "%r".' % e, 502)
 
     if 'invalid_grant' in result:
         # The provided refresh token is invalid which means the user has revoked
@@ -203,10 +206,10 @@ def get_access_token_for_id(gplus_id):
     elif response.status_code != 200:
         app.logging.error('Non-200 response to access token refresh request (%s): "%r".',
             response.status_code, result)
-        raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id)
+        raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id, 502)
     elif result.get('token_type') != 'Bearer':
         app.logging.error('Unknown token type "%s" refreshed for G+ id %s.', result.get('token_type'), gplus_id)
-        raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id)
+        raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id, 502)
 
     token = result['access_token']
     Cache.set(ACCESS_TOKEN_CACHE_KEY_TEMPLATE % gplus_id, token, time=result['expires_in'])
@@ -229,5 +232,16 @@ def authed_request_for_id(gplus_id, request):
         return response
 
     response = make_request()
+
+    if response.status_code == 403:
+        # Typically used to indicate that Google is rate-limiting the API call
+        raise UnavailableException('API 403 response: %r' % api_response.json(), 503)
+    elif response.status_code == 401:
+        raise UnavailableException('Invalid access token.', 401)
+    elif response.status_code != 200:
+        raise UnavailableException(
+            'Unknown API error (code=%d): %r' % (response.status_code, response.json()), 502)
+
+    return response
 
 # vim: set ts=4 sts=4 sw=4 et:
