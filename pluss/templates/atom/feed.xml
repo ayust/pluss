@@ -5,7 +5,7 @@
 <link href="https://plus.google.com/{{ feed_id }}" rel="alternate" />
 <link href="{{ request_url }}" rel="self" />
 <id>https://plus.google.com/{{ feed_id }}</id>
-<icon>{{ actor.image_url }}?sz=16</icon>
+<icon>{{ actor.image_url }}</icon>
 <generator uri="{{ server_url }}">Pluss - Google+ Feed Proxy</generator>
 <updated>{{ to_atom_date(last_update) }}</updated>
 <author>
@@ -17,7 +17,7 @@
 {%- for item in items %}
 <entry>
   <title>{{ item.title|striptags }}</title>
-  <link href="{{ permalink }}" rel="alternate" />
+  <link href="{{ item.permalink }}" rel="alternate" />
   <updated>{{ to_atom_date(item.updated) }}</updated>
   <published>{{ to_atom_date(item.published) }}</published>
   <id>tag:plus.google.com,{{ item.published.strftime("%Y-%m-%d") }}:/{{ item.id }}</id>

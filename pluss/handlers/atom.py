@@ -1,3 +1,5 @@
+import re
+
 import flask
 import jinja2
 import requests
@@ -38,7 +40,7 @@ def atom(gplus_id, page_id=None):
         cache_key = '%s-%s' % (cache_key, page_id)
 
     response = Cache.get(cache_key) # A frozen Response object
-    if response is None:
+    if response is None or flask.request.args.get('flush'):
         try:
             response = generate_atom(gplus_id, page_id)
         except oauth2.UnavailableException as e:
@@ -272,8 +274,24 @@ def create_title(html):
     """Attempt to devise a title for an arbitrary piece of html content."""
     if not html:
         return None
-    # TODO: improve this
-    text = jinja2.Markup(html).striptags()
-    return text[:100]
+
+    # Try just the text before the first line break, and see if that gives a decent title.
+    # If it does, use that, otherwise, use the full text.
+    first_line = re.split(r'<br\s*/?>', html)[0]
+    first_line_text = jinja2.Markup(first_line).striptags()
+    if len(first_line_text) > 3:
+        text = first_line_text
+    else:
+        text = jinja2.Markup(html).striptags()
+
+    # If we're already at 100 characters or less, we're good.
+    if len(text) <= 100:
+        return text
+
+    # Trim things down, avoiding breaking words.
+    shortened = text[:97]
+    if ' ' in shortened[-10:]:
+        shortened = shortened.rsplit(' ', 1)[0]
+    return shortened + '...'
 
 # vim: set ts=4 sts=4 sw=4 et:
