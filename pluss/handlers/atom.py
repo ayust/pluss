@@ -74,7 +74,7 @@ def generate_atom(gplus_id, page_id):
 
     items = result.get('items')
     if not items:
-        params['last_update'] = dateutils.to_atom_format(datetime.datetime.today())
+        params['last_update'] = datetime.datetime.today()
         body = flask.render_template('atom/empty.xml', **params)
     else:
         last_update = max(dateutils.from_iso_format(item['updated']) for item in items)
