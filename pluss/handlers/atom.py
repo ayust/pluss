@@ -52,8 +52,8 @@ def generate_atom(gplus_id, page_id):
     """Generate an Atom-format feed for the given G+ id."""
     # If no page id specified, use the special value 'me' which refers to the
     # stream for the owner of the OAuth2 token.
-    request = requests.Request('POST', GPLUS_API_ACTIVITIES_ENDPOINT % (page_id or 'me'),
-        data={'maxResults': 10, 'userIp': flask.request.remote_addr})
+    request = requests.Request('GET', GPLUS_API_ACTIVITIES_ENDPOINT % (page_id or 'me'),
+        params={'maxResults': 10, 'userIp': flask.request.remote_addr})
     api_response = oauth2.authed_request_for_id(gplus_id, request)
     result = api_response.json()
 
@@ -68,14 +68,16 @@ def generate_atom(gplus_id, page_id):
         'request_url': request_url,
     }
 
-    items = result.get(items)
+    items = result.get('items')
     if not items:
         params['last_update'] = dateutils.to_atom_format(datetime.datetime.today())
         body = flask.render_template('atom/empty.xml', **params)
     else:
         last_update = max(dateutils.from_iso_format(item['updated']) for item in items)
-        params['last_update'] = dateutils.to_http_format(last_update)
+        params['last_update'] = last_update
         params['items'] = process_feed_items(items)
+        params['actor'] = params['items'][0]['actor']
+        params['to_atom_date'] = dateutils.to_atom_format
         body = flask.render_template('atom/feed.xml', **params)
 
     response = flask.make_response(body)
@@ -84,7 +86,7 @@ def generate_atom(gplus_id, page_id):
 
 def process_feed_items(api_items):
     """Generate a list of items for use in an Atom feed template from an API result."""
-    return [process_timeline_item(item) for item in api_items]
+    return [process_feed_item(item) for item in api_items]
 
 def process_feed_item(api_item):
     """Generate a single item for use in an Atom feed template from an API result."""
@@ -94,7 +96,7 @@ def process_feed_item(api_item):
         'permalink':  api_item['url'],
         'published': dateutils.from_iso_format(api_item['published']),
         'updated': dateutils.from_iso_format(api_item['updated']),
-        'actor': parse_actor(api_item['actor']),
+        'actor': process_actor(api_item['actor']),
     }
 
     # Choose which processor to use for this feed item
@@ -234,7 +236,23 @@ def process_attached_video(attachment):
 def process_attached_album(attachment):
     """Process an attached photo album."""
     title = attachment.get('displayName')
-    html = flask.render_template('atom/album.html', album=attachment)
+    thumbnails = attachment.get('thumbnails', [])
+
+    if len(thumbnails) > 1:
+        thumbnails[0]['first'] = True
+        big_size = thumbnails[0].get('image', {}).get('height', 0)
+        small_size = thumbnails[1].get('image', {}).get('height', 1)
+        offset = big_size % small_size
+        max_offset = (big_size // small_size) + 1
+        if offset > max_offset:
+            offset = offset - small_size
+        if abs(offset) > max_offset:
+            offset = 0
+        offset = -offset
+    else:
+        offset = 0
+
+    html = flask.render_template('atom/album.html', album=attachment, offset=offset)
     return {
         'html': html,
         'title': title,

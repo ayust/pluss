@@ -3,10 +3,10 @@
 {% block before_auth_prompt %}
 		<p>Your feed should be available here:</p>
 		<p class="your-feed">
-		<a href="{{ escape(feed_url) }}"
-			title="Feed for {{ escape(gplus_id) }}">{{ escape(feed_url) }}</a>
+		<a href="{{ feed_url }}"
+			title="Feed for {{ gplus_id }}">{{ feed_url }}</a>
 		</p>
-{% end %}
+{% endblock %}
 
 {% block auth_prompt %}
 		<p><strong>You <em>do</em> seem to be authenticated already.</strong>
@@ -22,4 +22,4 @@
 		<p>If you'd like to make pluss proxy a <em>different</em> user feed, you
 		can authenticate with a different Google account, after which that will
 		become the default feed link displayed on this page for you:</p>
-{% end %}
+{% endblock %}

@@ -3,14 +3,14 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>{% block title %}pluss - Feed Proxy for Google+{% end %}</title>
-		<link rel="stylesheet" href="{{ static_url('css/main.css') }}" />
-		{% block add_to_head %}{% end %}
+		<title>{% block title %}pluss - Feed Proxy for Google+{% endblock %}</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+		{% block add_to_head %}{% endblock %}
 	</head>
 	<body><div id="content-container">
-		<h1>{% block top_heading %}pluss - Feed Proxy for Google+{% end %}</h1>
+		<h1>{% block top_heading %}pluss - Feed Proxy for Google+{% endblock %}</h1>
 
-		{% block before_auth_prompt %}{% end %}
+		{% block before_auth_prompt %}{% endblock %}
 
 		{% block auth_prompt %}
 		<p>Before pluss can proxy your Google+ public stream, you'll need to
@@ -18,14 +18,14 @@
 		does not reveal your Google auth information to pluss - it merely allows
 		pluss to discover who you are on Google+, and acquire an access token that
 		will allow it to request your public posts from Google's APIs.</p>
-		{% end %}
+		{% endblock %}
 
 		<a href="/auth" id="auth-button" title="Click here to authenticate with Google">
-			<img src="{{ static_url('images/login-with-google-130x22.png') }}"
+			<img src="{{ url_for('static', filename='images/login-with-google-130x22.png') }}"
 			alt="Login with Google button" width="130" height="22" />
 		</a>
 
-		{% block after_auth_button %}{% end %}
+		{% block after_auth_button %}{% endblock %}
 
 		{% block sharing_buttons %}
 		<div class="pseudo-paragraph">
@@ -35,14 +35,14 @@
 				<g:plusone size="medium"></g:plusone>
 			</div>
 		</div>
-		{% end %}
+		{% endblock %}
 
 		<p>You can also find the source code used to run this server on GitHub:
 		<a href="https://github.com/ayust/pluss" title="pluss on GitHub">https://github.com/ayust/pluss</a></p>
 
 		<div id="footer">
 			<a href="/privacy" title="View the pluss Privacy Policy">Privacy Policy</a>
-			pluss &copy; 2011-{{ int(datetime.date.today().year) }} Amber Yust.
+			pluss &copy; 2011-{{ datetime.date.today().year }} Amber Yust.
 			Source code released under the <a href="https://raw.github.com/ayust/pluss/master/LICENSE"
 			title="Read the text of pluss' LICENSE file.">MIT License</a>.
 		</div>

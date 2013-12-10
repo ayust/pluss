@@ -1,5 +1,6 @@
 import datetime
 import urllib
+import pprint
 
 import flask
 import requests
@@ -30,6 +31,7 @@ def auth():
         'client_id': Config.get('oauth', 'client-id'),
         'redirect_uri': full_url_for('oauth2'),
         'scope': OAUTH2_SCOPE,
+        'response_type': 'code',
 
         # Settings necessary for daemon operation
         'access_type': 'offline',
@@ -109,12 +111,12 @@ def oauth2():
     # This is in seconds, but we convert it to an absolute timestamp so that we can
     # account for the potential delay it takes to look up the G+ id we should associate
     # the access tokens with. (Could be up to GOOGLE_API_TIMEOUT seconds later.)
-    expiry = datetime.datetime.today() + datetime.timedelta(secondsresult['expires_in'])
+    expiry = datetime.datetime.today() + datetime.timedelta(seconds=result['expires_in'])
 
     try:
         person = get_person_by_access_token(access_token)
     except UnavailableException as e:
-        app.logger.error('Unable to finish OAuth2 flow: %s.', e.message)
+        app.logger.error('Unable to finish OAuth2 flow: %r.' % e)
         message = ('Whoops, we got an invalid response from Google for your authorization.'
                    ' Please try again later.')
         return message, 502 # Bad Gateway
@@ -124,11 +126,11 @@ def oauth2():
 
     # Convert the absolute expiry timestamp back into a duration in seconds
     expires_in = int((expiry - datetime.datetime.today()).total_seconds())
-    Cache.set(ACCESS_TOKEN_CACHE_KEY_TEMPLATE % gplus_id, access_token, time=expires_in)
+    Cache.set(ACCESS_TOKEN_CACHE_KEY_TEMPLATE % person['id'], access_token, time=expires_in)
 
     # Whew, all done! Set a cookie with the user's G+ id and send them back to the homepage.
     app.logger.info("Successfully authenticated G+ id %s.", person['id'])
-    response = flask.make_response(flask.redirect(url_for('main')))
+    response = flask.make_response(flask.redirect(flask.url_for('main')))
     response.set_cookie('gplus_id', person['id'])
     return response
 
@@ -139,7 +141,7 @@ def oauth2():
 # Exception raised by any of the following if they are unable to acquire a result.
 class UnavailableException(Exception):
     def __init__(self, message, status, *args, **kwargs):
-        super(UnavailableException, self).__init__(*args, **kwargs)
+        super(UnavailableException, self).__init__(message, status, *args, **kwargs)
         self.status = status
 
 def get_person_by_access_token(token):
@@ -148,12 +150,12 @@ def get_person_by_access_token(token):
         'Authorization': 'Bearer %s' % token,
     }
     try:
-        response = session.post(GPLUS_API_ME_ENDPOINT, headers=headers, timeout=GOOGLE_API_TIMEOUT)
+        response = session.get(GPLUS_API_ME_ENDPOINT, headers=headers, timeout=GOOGLE_API_TIMEOUT)
         person = response.json()
     except requests.exceptions.Timeout:
         raise UnavailableException('Person API request timed out.', 504)
     except Exception as e:
-        raise UnavailableException('Person API request raised exception "%r".' % e, 502)
+        raise UnavailableException('Person API request raised exception "%r" for %s.' % (e, pprint.pformat(response).text), 502)
 
     Cache.set(PROFILE_CACHE_KEY_TEMPLATE % person['id'], person,
         time=Config.getint('cache', 'profile-expire'))
@@ -184,7 +186,7 @@ def get_access_token_for_id(gplus_id):
 
     data = {
         'client_id': Config.get('oauth', 'client-id'),
-        'client_secret': Config.get('oauth', 'client_secret'),
+        'client_secret': Config.get('oauth', 'client-secret'),
         'refresh_token': refresh_token,
         'grant_type': 'refresh_token',
     }
@@ -222,7 +224,8 @@ def authed_request_for_id(gplus_id, request):
     def make_request(retry=True):
         token = get_access_token_for_id(gplus_id)
         request.headers['Authorization'] = 'Bearer %s' % token
-        response = session.send(request, timeout=GOOGLE_API_TIMEOUT)
+        prepared_request = request.prepare()
+        response = session.send(prepared_request, timeout=GOOGLE_API_TIMEOUT)
         if response.status_code == 401:
             # Our access token is invalid. If this is the first failure,
             # try forcing a refresh of the access token.

@@ -2,7 +2,7 @@ import hashlib
 import json
 import logging
 
-from util.config import Config
+from pluss.util.config import Config
 
 if Config.getboolean('cache', 'memcache'):
 	try:

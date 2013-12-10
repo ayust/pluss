@@ -7,18 +7,20 @@
 <id>https://plus.google.com/{{ feed_id }}</id>
 <icon>{{ actor.image_url }}?sz=16</icon>
 <generator uri="{{ server_url }}">Pluss - Google+ Feed Proxy</generator>
-<updated>{{ last_update }}</updated>
+<updated>{{ to_atom_date(last_update) }}</updated>
 <author>
  <name>{{ actor.name }}</name>
- <uri>{{ actor.url }}</name>
+ {% if actor.url %}
+ <uri>{{ actor.url }}</uri>
+ {% endif %}
 </author>
 {% for item in items %}
 <entry>
-  <title>{{ item.title|striphtml }}</title>
+  <title>{{ item.title|striptags }}</title>
   <link href="{{ permalink }}" rel="alternate" />
-  <updated>{{ item.updated }}</updated>
-  <published>{{ item.published }}</published>
-  <id>tag:plus.google.com,{{ item.postdate }}:/{{ item.id }}</id>
+  <updated>{{ to_atom_date(item.updated) }}</updated>
+  <published>{{ to_atom_date(item.published) }}</published>
+  <id>tag:plus.google.com,{{ item.published.strftime("%Y-%m-%d") }}:/{{ item.id }}</id>
   <content type="html">{{ item.content }}</content>
 </entry>
 {% endfor %}

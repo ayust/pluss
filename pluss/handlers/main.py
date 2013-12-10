@@ -1,3 +1,4 @@
+import datetime
 import flask
 
 from pluss.app import app, full_url_for
@@ -13,10 +14,10 @@ def main():
         if not TokenIdMapping.lookup_refresh_token(gplus_id):
             return flask.redirect(flask.url_for('clear'))
         # Display a page indicating the user's feed URL, since they've authed.
-        return flask.render_template('authed_main.html', gplus_id=gplus_id,
-            feed_url=full_url(flask.url_for('atom', gplus_id=gplus_id)))
+        return flask.render_template('authed_main.html', datetime=datetime, gplus_id=gplus_id,
+            feed_url=full_url_for('user_atom', gplus_id=gplus_id))
     else:
-        return flask.render_template('main.html')
+        return flask.render_template('main.html', datetime=datetime)
 
 @app.route("/clear")
 def clear():
@@ -28,7 +29,7 @@ def clear():
 @app.route("/privacy")
 def privacy():
     """Display the privacy policy."""
-    return flask.render_template('privacy.html')
+    return flask.render_template('privacy.html', datetime=datetime)
 
 
 # vim: set ts=4 sts=4 sw=4 et:
