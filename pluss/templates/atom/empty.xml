@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+<title>No items found for {{ feed_id }}</title>
+<link href="https://plus.google.com/{{ feed_id }}" rel="via" />
+<link href="https://plus.google.com/{{ feed_id }}" rel="alternate" />
+<link href="{{ request_url }}" rel="self" />
+<id>https://plus.google.com/{{ feed_id }}</id>
+<generator uri="{{ server_url }}">Pluss - Google+ Feed Proxy</generator>
+<updated>{{ to_atom_date(last_update) }}</updated>
+<entry>
+  <title>No Public Items Found</title>
+  <link href="https://plus.google.com/{{ feed_id }}" rel="alternate" />
+  <updated>{{ to_atom_date(last_update) }}</updated>
+  <published>{{ to_atom_date(last_update) }}</published>
+  <content type="html">G+ user {{ feed_id }} has not made any posts public.</content>
+</entry>
+</feed>
