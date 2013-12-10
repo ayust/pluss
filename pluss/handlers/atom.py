@@ -69,6 +69,7 @@ def generate_atom(gplus_id, page_id):
         'server_url': full_url_for('main'),
         'feed_id': page_id or gplus_id,
         'request_url': request_url,
+        'to_atom_date': dateutils.to_atom_format,
     }
 
     items = result.get('items')
@@ -80,7 +81,6 @@ def generate_atom(gplus_id, page_id):
         params['last_update'] = last_update
         params['items'] = process_feed_items(items)
         params['actor'] = params['items'][0]['actor']
-        params['to_atom_date'] = dateutils.to_atom_format
         body = flask.render_template('atom/feed.xml', **params)
 
     response = flask.make_response(body)
