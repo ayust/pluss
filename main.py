@@ -2,6 +2,8 @@
 import logging
 
 from pluss.app import app
+from werkzeug.contrib.fixers import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 @app.before_first_request
 def setup_logging():
