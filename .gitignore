@@ -5,3 +5,4 @@
 /pluss.cfg
 *.sqlite
 venv/
+gunicorn.cfg
