@@ -1,19 +1,10 @@
 import sqlite3
 
+# This is really hacky. At some point it should really get replaced with a proper
+# database system that can share connections between threads, et cetera - but for
+# now, this works.
+
 global_db_path = None
-
-# Note that EVERY function that does database operations
-# should include at least one call to either conn.commit()
-# or conn.rollback() - and there shouldn't be any DB access
-# after the last such call in a given function. (IOW, don't
-# leave uncommitted changes around.)
-
-class Table(object):
-
-	@classmethod
-	def create(cls):
-		"""Creates the table in the database if it doesn't already exist."""
-		raise NotImplementedError
 
 def init(db_path):
         global global_db_path
@@ -22,7 +13,7 @@ def init(db_path):
 	# Create tables
 	TokenIdMapping.create()
 
-class TokenIdMapping(Table):
+class TokenIdMapping(object):
 
 	@classmethod
 	def create(cls):
