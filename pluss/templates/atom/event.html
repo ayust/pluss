@@ -1,0 +1,4 @@
+<h3><a href="{{ event.url }}">{{ event.displayName }}</a></h3>
+{% if event.content %}
+<p>{{ event.content|safe }}</p>
+{% endif %}

@@ -1,0 +1,15 @@
+{% if video.embed %}
+<embed src="{{ video.embed.url }}" type="{{ video.embed.type }}" />
+{% elif video.image %}
+<a href="{{ video.url }}">
+<img
+  src="{{ video.image.url }}"
+  {%- if video.image.height and video.image.width %}
+  height="{{ video.image.height }}"
+  width="{{ video.image.width }}"
+  {% endif -%}
+  alt="{{ video.image.displayName|default("attached video",true) }}" />
+</a>
+{% else %}
+Video: <a href="{{ video.url }}">{{ video.displayName|default(video.url) }}</a>
+{% endif %}

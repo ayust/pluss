@@ -1,0 +1,6 @@
+{% if html %}
+<div>{{ html|safe }}</div>
+{% endif -%}
+{% for attachment in attachments %}
+<div>{{ attachment.html|safe }}</div>
+{% endfor %}

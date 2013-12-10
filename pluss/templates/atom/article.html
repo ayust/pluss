@@ -1,0 +1,11 @@
+<a href="{{ article.url }}">{{ title }}</a>
+{% if article.image %}
+<br/>
+<img
+  src="{{ article.image.url }}"
+  {%- if article.image.height and article.image.width %}
+  height="{{ article.image.height }}"
+  width="{{ article.image.width }}"
+  {% endif -%}
+  alt="{{ article.image.displayName|default("attached image",true) }}" />
+{% endif %}

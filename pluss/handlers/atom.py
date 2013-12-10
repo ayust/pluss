@@ -1,4 +1,5 @@
 import flask
+import jinja2
 import requests
 
 from pluss.app import app, full_url_for
@@ -15,11 +16,13 @@ ATOM_CACHE_KEY_TEMPLATE = 'pluss--atom--1--%s'
 @ratelimited
 @app.route('/atom/<gplus_id>')
 def user_atom(gplus_id):
+    """Display an Atom-format feed for a user id."""
     return atom(gplus_id)
 
 @ratelimited
 @app.route('/atom/<gplus_id>/<page_id>')
 def page_atom(gplus_id, page_id):
+    """Display an Atom-format feed for a page, using a user's key."""
     return atom(gplus_id, page_id)
 
 def atom(gplus_id, page_id=None):
@@ -106,38 +109,152 @@ def process_feed_item(api_item):
 
 def process_post(api_item):
     """Process a standard post."""
-    html = api_item['content']
-    attachments = process_attachments(api_item.get('attachments'))
+    obj = api_item['object']
+    html = obj.get('content')
+    attachments = process_attachments(obj.get('attachments'))
 
-    if html:
-        title = create_title(html)
-    elif attachments:
+    # Normally, create the title from the post text
+    title = create_title(html)
+    # If that doesn't work, fall back to the first attachment's title
+    if not title and attachments:
         title = attachments[0]['title']
-    else:
+    # If that also doesn't work, use a default title
+    if not title:
         title = 'A G+ Post'
 
-    content = flask.render_template('atom/post.xml', html=html, attachments=attachments)
-    return {'content': content, 'title': title}
+    content = flask.render_template('atom/post.html', html=html, attachments=attachments)
+    return {
+        'content': content,
+        'title': title,
+
+        # These extra fields are only used in nested calls (e.g. shares)
+        'actor': process_actor(obj.get('actor')),
+        'url': obj.get('url'),
+    }
 
 def process_share(api_item):
     """Process a shared item."""
-    raise NotImplementedError
+    html = api_item.get('annotation')
+    original = process_post(api_item)
+
+    # Normally, create the title from the resharer's note
+    # If that doesn't work, fall back to the shared item's title
+    title = create_title(html) or original['title']
+    content = flask.render_template('atom/share.html', html=html, original=original)
+    return {
+        'content': content,
+        'title': title,
+    }
 
 def process_checkin(api_item):
-    """Process a Google Places check-in."""
-    raise NotImplementedError
+    """Process a check-in."""
+    actor = process_actor(api_item.get('actor'))
+    original = process_post(api_item)
+
+    content = flask.render_template('atom/checkin.html', actor=actor, original=original)
+    return {
+        'content': content,
+        'title': original['title'],
+    }
 
 def process_unknown(api_item):
     """Process an item of unknown type."""
-    raise NotImplementedError
+    # Try parsing it as a regular post
+    original = process_post(api_item)
+    if original['content']:
+        return original
+
+    # If that fails, just use a link to the post.
+    content = '<a href="%(url)s">%(url)s</a>' % {'url': api_item.get('url')}
+    return {
+        'content': content,
+        'title': 'A G+ Activity',
+    }
 
 def process_actor(api_actor):
     """Parse an actor definition from an API result."""
+    api_actor = api_actor or {}
     return {
         'id': api_actor.get('id'),
         'name': api_actor.get('displayName'),
         'url': api_actor.get('url'),
         'image_url': api_actor.get('image', {}).get('url'),
     }
+
+def process_attachments(attachments):
+    """Parse a list of attachments from an API result."""
+    results = []
+    type_processors = {
+        'article': process_attached_article,
+        'photo': process_attached_photo,
+        'album': process_attached_album,
+        'video': process_attached_video,
+        'event': process_attached_event,
+    }
+    for attachment in attachments:
+        item_type = attachment.get('objectType')
+        processor = type_processors.get(item_type)
+        if processor:
+            results.append(processor(attachment))
+        else:
+            descriptor = '[attachment with unsupported type "%s"]' % item_type
+            results.append({
+                'html': descriptor,
+                'title': descriptor,
+            })
+    return results
+
+def process_attached_article(attachment):
+    """Parse an attached article."""
+    title = attachment.get('displayName') or attachment.get('url')
+    html = flask.render_template('atom/article.html', article=attachment, title=title)
+    return {
+        'html': html,
+        'title': title,
+    }
+
+def process_attached_photo(attachment):
+    """Process an attached individual photo."""
+    title = attachment['image'].get('displayName')
+    html = flask.render_template('atom/photo.html', photo=attachment)
+    return {
+        'html': html,
+        'title': title,
+    }
+
+def process_attached_video(attachment):
+    """Process an attached video."""
+    title = attachment.get('displayName') or attachment.get('url')
+    html = flask.render_template('atom/video.html', video=attachment)
+    return {
+        'html': html,
+        'title': title,
+    }
+
+def process_attached_album(attachment):
+    """Process an attached photo album."""
+    title = attachment.get('displayName')
+    html = flask.render_template('atom/album.html', album=attachment)
+    return {
+        'html': html,
+        'title': title,
+    }
+
+def process_attached_event(attachment):
+    """Process an attached G+ event."""
+    title = attachment.get('displayName')
+    html = flask.render_template('atom/event.html', event=attachment)
+    return {
+        'html': html,
+        'title': title,
+    }
+
+def create_title(html):
+    """Attempt to devise a title for an arbitrary piece of html content."""
+    if not html:
+        return None
+    # TODO: improve this
+    text = jinja2.Markup(html).striptags()
+    return text[:100]
 
 # vim: set ts=4 sts=4 sw=4 et:
