@@ -10,11 +10,11 @@
 <updated>{{ to_atom_date(last_update) }}</updated>
 <author>
  <name>{{ actor.name }}</name>
- {% if actor.url %}
+ {%- if actor.url %}
  <uri>{{ actor.url }}</uri>
- {% endif %}
+ {%- endif %}
 </author>
-{% for item in items %}
+{%- for item in items %}
 <entry>
   <title>{{ item.title|striptags }}</title>
   <link href="{{ permalink }}" rel="alternate" />
@@ -23,5 +23,5 @@
   <id>tag:plus.google.com,{{ item.published.strftime("%Y-%m-%d") }}:/{{ item.id }}</id>
   <content type="html">{{ item.content }}</content>
 </entry>
-{% endfor %}
+{%- endfor %}
 </feed>

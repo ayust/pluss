@@ -109,7 +109,7 @@ def process_feed_item(api_item):
     item.update(verb_processor(api_item))
     return item
 
-def process_post(api_item):
+def process_post(api_item, nested=False):
     """Process a standard post."""
     obj = api_item['object']
     html = obj.get('content')
@@ -125,19 +125,20 @@ def process_post(api_item):
         title = 'A G+ Post'
 
     content = flask.render_template('atom/post.html', html=html, attachments=attachments)
-    return {
+    result = {
         'content': content,
         'title': title,
-
-        # These extra fields are only used in nested calls (e.g. shares)
-        'actor': process_actor(obj.get('actor')),
-        'url': obj.get('url'),
     }
+    if nested:
+        # These extra fields are only used in nested calls (e.g. shares)
+        result['actor'] = process_actor(obj.get('actor'))
+        result['url'] = obj.get('url')
+    return result
 
 def process_share(api_item):
     """Process a shared item."""
     html = api_item.get('annotation')
-    original = process_post(api_item)
+    original = process_post(api_item, nested=True)
 
     # Normally, create the title from the resharer's note
     # If that doesn't work, fall back to the shared item's title
@@ -151,7 +152,7 @@ def process_share(api_item):
 def process_checkin(api_item):
     """Process a check-in."""
     actor = process_actor(api_item.get('actor'))
-    original = process_post(api_item)
+    original = process_post(api_item, nested=True)
 
     content = flask.render_template('atom/checkin.html', actor=actor, original=original)
     return {
