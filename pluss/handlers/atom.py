@@ -40,7 +40,7 @@ def atom(gplus_id, page_id=None):
         cache_key = '%s-%s' % (cache_key, page_id)
 
     response = Cache.get(cache_key) # A frozen Response object
-    if response is None or flask.request.args.get('flush'):
+    if response is None:
         try:
             response = generate_atom(gplus_id, page_id)
         except oauth2.UnavailableException as e:
