@@ -47,7 +47,7 @@ def atom(gplus_id, page_id=None):
             app.logger.warning("Feed request failed - %s", e.message)
             flask.abort(e.status)
         response.freeze()
-        Cache.set(cache_key, response, time=Config.get('cache', 'stream-expire'))
+        Cache.set(cache_key, response, time=Config.getint('cache', 'stream-expire'))
     return response
 
 def generate_atom(gplus_id, page_id):
@@ -189,6 +189,7 @@ def process_actor(api_actor):
 def process_attachments(attachments):
     """Parse a list of attachments from an API result."""
     results = []
+    attachments = attachments or []
     type_processors = {
         'article': process_attached_article,
         'photo': process_attached_photo,
