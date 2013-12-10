@@ -47,9 +47,10 @@ def atom(gplus_id, page_id=None):
         except oauth2.UnavailableException as e:
             app.logger.warning("Feed request failed - %r", e)
             flask.abort(e.status)
+        response.add_etag()
         response.freeze()
         Cache.set(cache_key, response, time=Config.getint('cache', 'stream-expire'))
-    return response
+    return response.make_conditional(flask.request)
 
 def generate_atom(gplus_id, page_id):
     """Generate an Atom-format feed for the given G+ id."""
@@ -85,6 +86,7 @@ def generate_atom(gplus_id, page_id):
 
     response = flask.make_response(body)
     response.headers['Content-Type'] = 'application/atom+xml'
+    response.date = params['last_update']
     return response
 
 def process_feed_items(api_items):
