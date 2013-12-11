@@ -85,7 +85,7 @@ def generate_atom(gplus_id, page_id):
         body = flask.render_template('atom/feed.xml', **params)
 
     response = flask.make_response(body)
-    response.headers['Content-Type'] = 'application/atom+xml'
+    response.headers['Content-Type'] = 'application/atom+xml; charset=utf-8'
     response.date = params['last_update']
     return response
 
