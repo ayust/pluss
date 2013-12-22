@@ -206,11 +206,11 @@ def get_access_token_for_id(gplus_id):
         TokenIdMapping.remove_id(gplus_id)
         raise UnvailableException('Access revoked for G+ id %s.' % gplus_id)
     elif response.status_code != 200:
-        app.logging.error('Non-200 response to access token refresh request (%s): "%r".',
+        app.logger.error('Non-200 response to access token refresh request (%s): "%r".',
             response.status_code, result)
         raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id, 502)
     elif result.get('token_type') != 'Bearer':
-        app.logging.error('Unknown token type "%s" refreshed for G+ id %s.', result.get('token_type'), gplus_id)
+        app.logger.error('Unknown token type "%s" refreshed for G+ id %s.', result.get('token_type'), gplus_id)
         raise UnavailableException('Failed to refresh access token for G+ id %s.' % gplus_id, 502)
 
     token = result['access_token']
