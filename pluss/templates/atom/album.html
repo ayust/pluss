@@ -1,0 +1,13 @@
+<h3><a href="{{ album.url }}">{{ album.displayName }}</a></h3>
+{% for thumb in album.thumbnails %}
+<a href="{{ thumb.url }}"><img
+  src="{{ thumb.image.url }}"
+  type="{{ thumb.image.type }}"
+  height="{{ thumb.image.height }}"
+  width="{{ thumb.image.width }}"
+  alt="{{ thumb.description|default("thumbnail image",true) }}"
+  style="float: left; border: 0;
+  {%- if thumb.first  %}margin: 0 {{ offset }}px {{ offset }}px 0;{% endif -%}
+  " /></a>
+{% endfor %}
+<small style="clear: both">({{ album.thumbnails|count }} images)</small>

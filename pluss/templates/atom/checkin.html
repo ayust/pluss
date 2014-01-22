@@ -1,0 +1,8 @@
+<p>
+  {%- if actor.url -%}
+    <a href="{{ actor.url }}"><strong>{{ actor.name }}</strong></a>
+  {%- else -%}
+    <strong>{{ actor.name }}</strong>
+  {%- endif %} checked in at {{ place_name }}:
+</p>
+{{ original.content|safe }}

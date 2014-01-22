@@ -4,7 +4,7 @@ pluss - A feed generator for Google+
 What is pluss?
 ----------------
 
-`pluss` is a lightweight web server which serves [Atom][6]-format feeds based on [Google+][5] public post streams. It's very similar to [`plusfeed`][7], but it's designed to run on a regular server as a `tornado` app, rather than on AppEngine. It also uses the official Google+ API to fetch its content.
+`pluss` is a lightweight web server which serves [Atom][2]-format feeds based on [Google+][1] public post streams. It's very similar to [`plusfeed`][3], but it's designed to run on a regular server as a Flask app, rather than on AppEngine. It also uses the official Google+ API to fetch its content.
 
 It works similarly to a proxy server - you request the feed url via HTTP from the `pluss` server, it fetches a copy of the specified user's Google+ public posts stream, translates it into Atom format, and serves it back to you.
 
@@ -17,13 +17,13 @@ A running pluss server is available for general usage [here](http://pluss.aiiane
 Dependencies
 ------------
 
-Note that it is *possible* that `pluss` might work with earlier versions of some of these packages, but I do not plan to support anything less than what is listed here. Caveat emptor.
+pluss' major dependencies are:
 
- - [Python][3] 2.7+
- - [`BeautifulSoup`][2] 3.2+
- - [`python-memcache`][4] 1.45+ (optional, but required for `memcached` support which is highly recommended)
+ * Flask
+ * requests
+ * python-memcached (technically optional, but highly recommended)
 
-([`tornado`][1] version 2.0 is already bundled with `pluss` for simplicity.)
+The included `requirements.txt` includes these, and also the packages necessary to run pluss within a high-performance gunicorn server.
 
 Installation
 ------------
@@ -42,49 +42,37 @@ At a bare minimum, you'll need to change the values of the keys in the `[oauth]`
     client-id = 123456789000.apps.googleusercontent.com
 	client-secret = aBcDeFg_hIjKlMn_oPqRstUv
 
-(The proper values to use can be found in the [Google APIs Console][9] under the 'API Access' section.)
+(The proper values to use can be found in the [Google APIs Console][5] under the 'API Access' section.)
 
-You can also tweak any other portions of the config file - by default, `pluss` runs on all interfaces at port 7587. (`PLUS` on a phone keypad.)
+You'll also want to set the `host` field in the `[server]` section to match the hostname pluss will be serving under.
 
 Usage
 -----
 
-To start the `pluss` server, simply run `pluss.py`
+A debug version of pluss can be started by simply running `main.py` - it'll boot up on port 54321.
 
-    $ python pluss.py
-
-(Invoking `pluss.py` directly should also work on systems supporting shebangs.)
-
-Once `pluss` is running, you should be able to access it in a browser:
-
-    http://example.com:7587
+For production environments, you probably want to point a WSGI server (e.g. gunicorn) at `main:app`.
 
 Notes
 -----
 
- - `pluss` will write out a `app.pid` file to the path specified in the config file, and will remove it when it terminates.
- - `pluss` currently runs in the foreground (it's not really productionized yet), but you can background it with `nohup` easily enough, or run it in `screen`/`tmux`.
  - `pluss` will ignore the setting for enabling caching if `import memcache` fails (but will write out a message to the log to let you know it's doing so).
  - `pluss` is subject to normal Google API rate limits. If you want further access control of who can use your `pluss` server, use external measures (e.g. firewall rules, a reverse proxy doing authentication, etc).
 
 Special Thanks
 --------------
 
-Though `pluss` was written basically from the ground up, there were a few portions which were inspired by or assisted by the work of others. The [`plusfeed`][7] codebase was extremely helpful in corroborating and speeding along some of my own original exploration of Google+ data parsing and Atom feed generation (though a significant amount of that was then reworked when the official Google+ API was made available). There are also two files, `util/route.py` and `util/pid.py`, which were utility code openly shared by individuals in blog posts - you can find the original authors and links to the sources within the files themselves as comments.
+Though `pluss` was written basically from the ground up, there were a few portions which were inspired by or assisted by the work of others. The [`plusfeed`][3] codebase was extremely helpful in corroborating and speeding along some of my own original exploration of Google+ data parsing and Atom feed generation (though a significant amount of that was then reworked when the official Google+ API was made available).
 
 Licensing
 ---------
 
-`pluss` was originally created by [Amber Yust][8].
+`pluss` was originally created by [Amber Yust][4].
 
 As specified in detail in the included `LICENSE` file, this software is released under the MIT License. That basically means you can do essentially whatever you want with it as long as you keep the `LICENSE` file around (i.e. don't mislead people as to the original source/availability of this software).
 
- [1]: http://www.tornadoweb.org/
- [2]: http://www.crummy.com/software/BeautifulSoup/
- [3]: http://python.org/
- [4]: http://www.tummy.com/Community/software/python-memcached/
- [5]: http://plus.google.com
- [6]: http://en.wikipedia.org/wiki/Atom_%28standard%29
- [7]: https://github.com/russellbeattie/plusfeed
- [8]: https://github.com/ayust
- [9]: https://code.google.com/apis/console/
+ [1]: http://plus.google.com
+ [2]: http://en.wikipedia.org/wiki/Atom_%28standard%29
+ [3]: https://github.com/russellbeattie/plusfeed
+ [4]: https://github.com/ayust
+ [5]: https://code.google.com/apis/console/

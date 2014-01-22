@@ -1,0 +1,18 @@
+<img
+  src="{{ photo.image.url }}"
+  {%- if photo.image.height and photo.image.width %}
+  height="{{ photo.image.height }}"
+  width="{{ photo.image.width }}"
+  {% endif -%}
+  alt="{{ photo.image.displayName|default("attached image",true) }}" />
+{% if photo.fullImage %}
+  <br/>
+  <small>
+  {%- if photo.fullImage.height and photo.fullImage.width -%}
+  <a href="{{ photo.fullImage.url }}">View full size
+  ({{ photo.fullImage.width }}x{{ photo.fullImage.height }})</a>
+  {%- else -%}
+  <a href="{{ photo.fullImage.url }}">View full size</a>
+  {%- endif -%}
+  </small>
+{% endif %}

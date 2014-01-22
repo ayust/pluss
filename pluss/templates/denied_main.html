@@ -1,0 +1,7 @@
+{% extends "main.html" %}
+
+{% block before_auth_prompt %}
+		<p class="error">Access to your Google+ profile was denied, either by Google's servers or by you.</p>
+{% endblock %}
+
+{% block sharing_buttons %}{% endblock %}

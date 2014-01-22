@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Privacy Policy - pluss - Feed Proxy for Google+</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+	</head>
+	<body><div id="content-container">
+		<h1>pluss - Feed Proxy for Google+</h1>
+
+		<h2>Privacy Policy</h2>
+
+		<h3>Information Collection and Usage</h3>
+
+		<p>If you choose to use pluss, an authentication token provided to pluss by Google will be stored in its database.
+		This token can be linked to the publicly available information from your Google+ profile. However, this token will
+		not be shared with other users of the pluss service; it is only used internally by pluss to access the Google+ API.</p>
+
+		<p>pluss serves as a proxy for public Google+ posts. As such, it will use the authentication token provided when you
+		initially authorize it to retrieve public posts and profile information from your Google+ account. This information
+		may be cached on the pluss server to provide better feed performance, but will not be used for purposes other than
+		providing this proxy service.</p>
+
+		<p>When you use pluss, certain information will be automatically collected and stored in server logs. This information
+		includes your IP address and the pluss URL(s) accessed via that IP address. These logs will only be used for diagnostic
+		and anonymous analysis purposes, and will not be disclosed to other users of the service.</p>
+
+		<h3>Information You Share</h3>
+
+		<p>pluss provides access to content you have already made public on Google+. As such, it does not make any effort to
+		conceal or otherwise keep private the content it proxies. Please keep this in mind when choosing what you post publicly.</p>
+
+		<h3>Information pluss Shares</h3>
+
+		<p>By using pluss, you give it permission to act as a proxy for the public content on your Google+ account. If at any time you
+		wish pluss to stop proxying your content, simply revoke its access from your <a href="https://plus.google.com/apps">Google Account settings</a>.</p>
+
+		<p>pluss does not share any information beyond that available in your public Google+ stream.</p>
+
+		<h3>Changes</h3>
+
+		<p>This policy may occasionally change. It is tracked as part of the source code for this project, and
+		<a href="https://github.com/ayust/pluss/commits/master/templates/privacy.html">its history can be
+		browsed on GitHub</a>. Due to the fact that pluss does not collect users' contact information, pluss cannot automatically inform
+		users of privacy policy changes, but a best effort will be made to make any changes noticeable.</p>
+
+		<div id="footer">
+			<a href="/privacy" title="View the pluss Privacy Policy">Privacy Policy</a>
+			pluss &copy; 2011-{{ datetime.date.today().year }} Amber Yust.
+			Source code released under the <a href="https://raw.github.com/ayust/pluss/master/LICENSE"
+			title="Read the text of pluss' LICENSE file.">MIT License</a>.
+		</div>
+
+	</div>
+	</body>
+</html>

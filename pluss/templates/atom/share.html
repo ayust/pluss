@@ -1,0 +1,15 @@
+{% if html %}
+<div>{{ html|safe }}</div>
+<hr/>
+{% endif %}
+{% if original.actor.name %}
+<p>
+  {%- if original.actor.url -%}
+    <a href="{{ original.actor.url }}"><strong>{{ original.actor.name }}</strong></a>
+  {%- else -%}
+    <strong>{{ original.actor.name }}</strong>
+  {%- endif %}
+  originally <a href="{{ original.url }}">shared</a>:
+</p>
+{% endif %}
+{{ original.content|safe }}

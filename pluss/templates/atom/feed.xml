@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+<title>{{ actor.name }} - Google+ Public Posts</title>
+<link href="https://plus.google.com/{{ feed_id }}" rel="via" />
+<link href="https://plus.google.com/{{ feed_id }}" rel="alternate" />
+<link href="{{ request_url }}" rel="self" />
+<id>https://plus.google.com/{{ feed_id }}</id>
+<icon>{{ actor.image_url }}</icon>
+<generator uri="{{ server_url }}">Pluss - Google+ Feed Proxy</generator>
+<updated>{{ to_atom_date(last_update) }}</updated>
+<author>
+ <name>{{ actor.name }}</name>
+ {%- if actor.url %}
+ <uri>{{ actor.url }}</uri>
+ {%- endif %}
+</author>
+{%- for item in items %}
+<entry>
+  <title>{{ item.title|striptags }}</title>
+  <link href="{{ item.permalink }}" rel="alternate" />
+  <updated>{{ to_atom_date(item.updated) }}</updated>
+  <published>{{ to_atom_date(item.published) }}</published>
+  <id>tag:plus.google.com,{{ item.published.strftime("%Y-%m-%d") }}:/{{ item.id }}</id>
+  <content type="html">{{ item.content }}</content>
+</entry>
+{%- endfor %}
+</feed>
