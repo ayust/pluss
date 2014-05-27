@@ -228,7 +228,7 @@ def process_attached_photo(attachment):
     html = flask.render_template('atom/photo.html', photo=attachment)
     return {
         'html': html,
-        'title': title,
+        'title': title or 'An Image',
     }
 
 def process_attached_video(attachment):
@@ -237,7 +237,7 @@ def process_attached_video(attachment):
     html = flask.render_template('atom/video.html', video=attachment)
     return {
         'html': html,
-        'title': title,
+        'title': title or 'A Video',
     }
 
 def process_attached_album(attachment):
@@ -262,7 +262,7 @@ def process_attached_album(attachment):
     html = flask.render_template('atom/album.html', album=attachment, offset=offset)
     return {
         'html': html,
-        'title': title,
+        'title': title or 'An Album',
     }
 
 def process_attached_event(attachment):
