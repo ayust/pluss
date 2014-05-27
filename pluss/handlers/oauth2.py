@@ -50,7 +50,7 @@ def oauth2():
     # Check for errors from the OAuth2 process
     err = flask.request.args.get('error')
     if err == 'access_denied':
-        return flask.redirect(url_for('denied'))
+        return flask.redirect(flask.url_for('denied'))
     elif err is not None:
         app.logger.warning("OAuth2 callback received error: %s", err)
         # TODO: handle this better (flash message?)
