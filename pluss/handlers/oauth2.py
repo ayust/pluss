@@ -198,7 +198,7 @@ def get_access_token_for_id(gplus_id):
     except Exception as e:
         raise UnavailableException('Access token API request raised exception "%r".' % e, 502)
 
-    if 'invalid_grant' in result:
+    if 'invalid_grant' in result or ('error' in result and result['error'] == 'invalid_grant'):
         # The provided refresh token is invalid which means the user has revoked
         # access to their content - thus, pluss should forget about them.
         Cache.delete(ACCESS_TOKEN_CACHE_KEY_TEMPLATE % gplus_id)
