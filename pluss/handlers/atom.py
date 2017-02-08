@@ -45,7 +45,7 @@ def atom(gplus_id, page_id=None):
         try:
             response = generate_atom(gplus_id, page_id)
         except oauth2.UnavailableException as e:
-            app.logger.warning("Feed request failed - %r", e)
+            app.logger.info("Feed request failed - %r", e)
             flask.abort(e.status)
         response.add_etag()
         response.freeze()
