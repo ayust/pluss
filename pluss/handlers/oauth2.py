@@ -204,7 +204,7 @@ def get_access_token_for_id(gplus_id):
         Cache.delete(ACCESS_TOKEN_CACHE_KEY_TEMPLATE % gplus_id)
         Cache.delete(PROFILE_CACHE_KEY_TEMPLATE % gplus_id)
         TokenIdMapping.remove_id(gplus_id)
-        raise UnavailableException('Access revoked for G+ id %s.' % gplus_id)
+        raise UnavailableException('Access revoked for G+ id %s.' % gplus_id, 502)
     elif response.status_code != 200:
         app.logger.error('Non-200 response to access token refresh request (%s): "%r".',
             response.status_code, result)
