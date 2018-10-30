@@ -9,5 +9,5 @@ greenlet==0.4.1
 gunicorn==19.5.0
 itsdangerous==0.23
 python-memcached==1.53
-requests==2.1.0
+requests==2.20.0
 wsgiref==0.1.2
