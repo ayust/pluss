@@ -36,6 +36,11 @@ def atom(gplus_id, page_id=None):
     if page_id and len(page_id) != 21:
         return 'Invalid G+ page ID (must be exactly 21 digits).', 404 # Not Found
 
+    # Google+ is no longer publicly available for consumers.
+    return 'Google+ was sunset for consumer users in April 2019. This feed is no longer available.', 410 # Gone
+
+    ##### CODE BELOW FOR HISTORICAL PURPOSES ONLY #####
+
     cache_key = ATOM_CACHE_KEY_TEMPLATE % gplus_id
     if page_id:
         cache_key = '%s-%s' % (cache_key, page_id)
